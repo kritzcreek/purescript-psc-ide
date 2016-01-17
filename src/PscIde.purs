@@ -64,6 +64,12 @@ complete ::
   Cmd (Array Completion)
 complete fs m = sendCommand (Complete fs m)
 
+type' ::
+  String ->
+  Array Filter ->
+  Cmd (Array Completion)
+type' s fs = sendCommand (Type s fs)
+
 
 suggestTypos ::
   String ->
