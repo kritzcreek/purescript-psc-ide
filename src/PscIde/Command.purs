@@ -71,6 +71,7 @@ data Command =
   | Load (Array String) (Array String)
   | Complete (Array Filter) (Maybe Matcher)
   | Pursuit PursuitType String
+  | Type String (Array Filter)
 
 data ListType = LoadedModules | Imports String | AvailableModules
 
@@ -105,6 +106,12 @@ instance encodeCommand :: EncodeJson Command where
     commandWrapper "pursuit" (
         "type" := (encodeJson psType)
         ~> "query" := q
+        ~> jsonEmptyObject
+      )
+  encodeJson (Type text filters) =
+    commandWrapper "type" (
+        "search" := encodeJson text
+        ~> "filters" := (encodeJson filters)
         ~> jsonEmptyObject
       )
 
