@@ -14,10 +14,11 @@
     "purescript-console": "^0.1.0",
     "purescript-argonaut": "~0.11.0",
     "purescript-arrays": "~0.4.4",
-    "purescript-maybe": "~0.3.5"
+    "purescript-maybe": "~0.3.5",
+    "purescript-aff": "~0.14.0"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/kRITZCREEK/purescript-psc-ide.git"            
+    "url": "git://github.com/kRITZCREEK/purescript-psc-ide.git"
   }
 }
