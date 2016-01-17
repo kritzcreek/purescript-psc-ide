@@ -1,38 +1,30 @@
 module PscIde where
 
 import Control.Monad.Eff (Eff)
-import Prelude (Unit, (>>>), show)
+import Control.Monad.Aff (Aff, makeAff)
+import Control.Alt ((<|>))
+import Prelude (Unit, (>>>), show, (<$>), pure)
 import Data.Argonaut.Decode (class DecodeJson)
 import Data.Argonaut.Encode (class EncodeJson, encodeJson)
 import Data.Maybe (Maybe(..))
-import Data.Either (Either(..))
 import PscIde.Command(
   Completion, Filter, Message, ModuleList, ImportList, Result,
   Command(..), Matcher(..), PursuitCompletion, unwrapResponse, ListType(..),
   PursuitType(..))
 
-
 foreign import data NET :: !
-
 
 foreign import send :: forall eff.
   String -> -- ^ Command
   Int ->  -- ^ Port
-  (String -> Eff eff Unit) -> -- ^ Callback
+  (String -> Eff (net :: NET | eff) Unit) -> -- ^ Callback
   Eff (net :: NET | eff) Unit
 
 
-type Cmd a = forall eff.
-  (Result a -> Eff eff Unit) ->
-  Eff (net :: NET | eff) Unit
+type Cmd a = forall eff. Aff (net :: NET | eff) (Result a)
 
-
-sendCommand :: forall i o eff. (EncodeJson i, DecodeJson o) =>
-  i ->
-  (Result o -> Eff eff Unit) ->
-  Eff (net :: NET | eff) Unit
-sendCommand c cb = send (show (encodeJson c)) 4242 (unwrapResponse >>> cb)
-
+sendCommand :: forall i o. (EncodeJson i, DecodeJson o) => i -> Cmd o
+sendCommand c = makeAff (\err succ -> send (show (encodeJson c)) 4242 (unwrapResponse >>> succ))
 
 cwd :: Cmd Message
 cwd = sendCommand Cwd
@@ -72,12 +64,8 @@ complete ::
 complete fs m = sendCommand (Complete fs m)
 
 
-suggestTypos :: forall eff.
+suggestTypos ::
   String ->
   Int ->
-  (Array Completion -> Eff eff Unit) ->
-  Eff (net :: NET | eff) Unit
-suggestTypos q m cb = complete [] (Just (Distance q m)) handle
-  where
-    handle (Right cs) = cb cs
-    handle (Left err) = cb []
+  Cmd (Array Completion)
+suggestTypos q m = (<|> (pure [])) <$> complete [] (Just (Distance q m))
