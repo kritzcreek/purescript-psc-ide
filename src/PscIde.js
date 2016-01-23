@@ -8,8 +8,12 @@ exports.send = function(cmd){
       return function(err){
         return function(){
           var sock = net.createConnection({port: port})
+            , result = ""
           sock.on('data', function (data) {
-            cb(data)()
+            result += data
+          })
+          .on('end', function () {
+            cb(result)()
           })
           .on('connect', function () {
             sock.setEncoding('utf8');
