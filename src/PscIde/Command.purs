@@ -2,13 +2,13 @@ module PscIde.Command where
 
 import Control.Alt ((<|>))
 import Data.Argonaut.Combinators ((~>), (:=), (.?))
-import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json)
+import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson)
 import Data.Argonaut.Encode (class EncodeJson, encodeJson)
 import Data.Argonaut.Parser (jsonParser)
 import Data.Argonaut.Printer (printJson)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Prelude (class Show, show, pure, (<<<), bind, (<$>), ($))
 
 data PursuitType = Package | Ident
@@ -152,7 +152,7 @@ unwrapResponse s = do
       Left result
 
 instance decodeMessage :: DecodeJson Message where
-  decodeJson json = pure (Message (printJson json))
+  decodeJson json = maybe (Left "Message not string") (Right <<< Message) $ toString json
 
 instance decodeModuleList :: DecodeJson ModuleList where
   decodeJson json = ModuleList <$> decodeJson json
