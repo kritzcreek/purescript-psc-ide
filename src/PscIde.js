@@ -1,8 +1,8 @@
-//module PscIde
+// module PscIde
 
 var net = require('net');
 
-module.exports.send = function(cmd){
+exports.send = function(cmd){
   return function(port){
     return function(cb){
       return function(err){
