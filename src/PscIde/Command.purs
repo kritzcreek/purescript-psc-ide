@@ -6,7 +6,6 @@ import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson)
 import Data.Argonaut.Encode (class EncodeJson, encodeJson)
 import Data.Argonaut.Parser (jsonParser)
-import Data.Argonaut.Printer (printJson)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), maybe)
 import Prelude (class Show, show, pure, (<<<), bind, (<$>), ($))
@@ -72,6 +71,8 @@ data Command =
   | Complete (Array Filter) (Maybe Matcher)
   | Pursuit PursuitType String
   | Type String (Array Filter)
+  | AddClause String Boolean
+  | CaseSplit String Int Int Boolean String
 
 data ListType = LoadedModules | Imports String | AvailableModules
 
@@ -114,6 +115,21 @@ instance encodeCommand :: EncodeJson Command where
         ~> "filters" := (encodeJson filters)
         ~> jsonEmptyObject
       )
+  encodeJson (AddClause line annotations) =
+    commandWrapper "addClause" (
+        "line" := encodeJson line
+        ~> "annotations" := encodeJson annotations
+        ~> jsonEmptyObject
+      )
+  encodeJson (CaseSplit line begin end annotations typ) =
+    commandWrapper "caseSplit" (
+        "line" := encodeJson line
+        ~> "begin" := encodeJson begin
+        ~> "end" := encodeJson end
+        ~> "annotations" := encodeJson annotations
+        ~> "type" := encodeJson typ
+        ~> jsonEmptyObject
+      )
 
 type Result a = Either String a
 
@@ -137,6 +153,8 @@ newtype Import = Import
   }
 
 data ImportType = Implicit | Explicit (Array String) | Hiding (Array String)
+
+
 
 unwrapResponse :: forall a. (DecodeJson a) => String -> Result a
 unwrapResponse s = do
