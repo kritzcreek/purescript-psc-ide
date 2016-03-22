@@ -70,9 +70,15 @@ type' ::
   Cmd (Array Completion)
 type' s fs = sendCommand (Type s fs)
 
-
 suggestTypos ::
   String ->
   Int ->
   Cmd (Array Completion)
 suggestTypos q m = (<|> (pure [])) <$> complete [] (Just (Distance q m))
+
+addClause :: String -> Boolean -> Cmd (Array String)
+addClause line annotations = sendCommand (AddClause line annotations)
+
+caseSplit :: String -> Int -> Int -> Boolean -> String -> Cmd (Array String)
+caseSplit line begin end annotations typ =
+  sendCommand (CaseSplit line begin end annotations typ)
