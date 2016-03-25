@@ -11,7 +11,7 @@ import Data.Maybe (Maybe(..))
 import PscIde.Command(
   Completion, Filter, Message, ModuleList, ImportList, Result,
   Command(..), Matcher(..), PursuitCompletion, unwrapResponse, ListType(..),
-  PursuitType(..))
+  PursuitType(..), ImportCommand(..), ImportResult(..))
 
 foreign import data NET :: !
 
@@ -82,3 +82,9 @@ addClause line annotations = sendCommand (AddClause line annotations)
 caseSplit :: String -> Int -> Int -> Boolean -> String -> Cmd (Array String)
 caseSplit line begin end annotations typ =
   sendCommand (CaseSplit line begin end annotations typ)
+
+implicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
+implicitImport infile outfile filters mod = sendCommand (ImportCmd infile outfile filters (AddImplicitImport mod))
+
+explicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
+explicitImport infile outfile filters ident = sendCommand (ImportCmd infile outfile filters (AddImport ident))

@@ -73,8 +73,12 @@ data Command =
   | Type String (Array Filter)
   | AddClause String Boolean
   | CaseSplit String Int Int Boolean String
+  | ImportCmd FileName (Maybe FileName) (Array Filter) ImportCommand
 
 data ListType = LoadedModules | Imports String | AvailableModules
+
+type FileName = String
+data ImportCommand = AddImplicitImport String | AddImport String
 
 commandWrapper :: forall a. (EncodeJson a) => String -> a -> Json
 commandWrapper s o =
@@ -130,6 +134,24 @@ instance encodeCommand :: EncodeJson Command where
         ~> "type" := encodeJson typ
         ~> jsonEmptyObject
       )
+  encodeJson (ImportCmd inFile outFile filters cmd) =
+    commandWrapper "import" (
+      "file" := encodeJson inFile
+      ~> "outfile" := encodeJson outFile
+      ~> "filters" := encodeJson filters
+      ~> "importCommand" := encodeJson cmd
+      ~> jsonEmptyObject
+      )
+
+instance encodeImportCommand :: EncodeJson ImportCommand where
+  encodeJson (AddImplicitImport ident) =
+    "importCommand" := "addImplicitImport"
+    ~> "module" := encodeJson ident
+    ~> jsonEmptyObject
+  encodeJson (AddImport mod) =
+    "importCommand" := "addImport"
+    ~> "identifier" := encodeJson mod
+    ~> jsonEmptyObject
 
 type Result a = Either String a
 
@@ -154,7 +176,7 @@ newtype Import = Import
 
 data ImportType = Implicit | Explicit (Array String) | Hiding (Array String)
 
-
+data ImportResult = SuccessFile Message | SuccessText (Array String) | MultipleResults (Array Completion)
 
 unwrapResponse :: forall a. (DecodeJson a) => String -> Result a
 unwrapResponse s = do
@@ -218,3 +240,8 @@ instance decodeImport :: DecodeJson Import where
         identifiers <- o .? "identifiers"
         pure $ Import {moduleName: moduleName, importType: Hiding identifiers, qualifier: Nothing}
       _ -> Left "unknown importType"
+
+instance decodeImportResult :: DecodeJson ImportResult where
+  decodeJson json = do
+    (SuccessText <$> decodeJson json)
+    <|> (SuccessFile <$> decodeJson json)
