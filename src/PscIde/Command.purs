@@ -245,3 +245,5 @@ instance decodeImportResult :: DecodeJson ImportResult where
   decodeJson json = do
     (SuccessText <$> decodeJson json)
     <|> (SuccessFile <$> decodeJson json)
+    <|> (MultipleResults <$> decodeJson json)
+    <|> (Left "Couldn't parse as ImportResult")

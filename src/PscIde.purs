@@ -1,17 +1,14 @@
 module PscIde where
 
-import Control.Monad.Eff (Eff)
-import Control.Monad.Aff (Aff, makeAff)
-import Control.Monad.Eff.Exception (Error)
 import Control.Alt ((<|>))
-import Prelude (Unit, (>>>), show, (<$>), pure)
+import Control.Monad.Aff (forkAll, Aff, makeAff)
+import Control.Monad.Eff (untilE, whileE, untilE, Eff)
+import Control.Monad.Eff.Exception (Error)
 import Data.Argonaut.Decode (class DecodeJson)
 import Data.Argonaut.Encode (class EncodeJson, encodeJson)
-import Data.Maybe (Maybe(..))
-import PscIde.Command(
-  Completion, Filter, Message, ModuleList, ImportList, Result,
-  Command(..), Matcher(..), PursuitCompletion, unwrapResponse, ListType(..),
-  PursuitType(..), ImportCommand(..), ImportResult(..))
+import Data.Maybe (maybe', Maybe(..))
+import Prelude
+import PscIde.Command
 
 foreign import data NET :: !
 
