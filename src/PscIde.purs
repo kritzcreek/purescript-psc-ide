@@ -1,17 +1,14 @@
 module PscIde where
 
-import Control.Monad.Eff (Eff)
-import Control.Monad.Aff (Aff, makeAff)
-import Control.Monad.Eff.Exception (Error)
 import Control.Alt ((<|>))
-import Prelude (Unit, (>>>), show, (<$>), pure)
+import Control.Monad.Aff (forkAll, Aff, makeAff)
+import Control.Monad.Eff (untilE, whileE, untilE, Eff)
+import Control.Monad.Eff.Exception (Error)
 import Data.Argonaut.Decode (class DecodeJson)
 import Data.Argonaut.Encode (class EncodeJson, encodeJson)
-import Data.Maybe (Maybe(..))
-import PscIde.Command(
-  Completion, Filter, Message, ModuleList, ImportList, Result,
-  Command(..), Matcher(..), PursuitCompletion, unwrapResponse, ListType(..),
-  PursuitType(..))
+import Data.Maybe (maybe', Maybe(..))
+import Prelude
+import PscIde.Command
 
 foreign import data NET :: !
 
@@ -82,3 +79,9 @@ addClause line annotations = sendCommand (AddClause line annotations)
 caseSplit :: String -> Int -> Int -> Boolean -> String -> Cmd (Array String)
 caseSplit line begin end annotations typ =
   sendCommand (CaseSplit line begin end annotations typ)
+
+implicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
+implicitImport infile outfile filters mod = sendCommand (ImportCmd infile outfile filters (AddImplicitImport mod))
+
+explicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
+explicitImport infile outfile filters ident = sendCommand (ImportCmd infile outfile filters (AddImport ident))
