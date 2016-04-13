@@ -4,6 +4,7 @@
   "moduleType": [
     "node"
   ],
+  "license": "LICENSE",
   "ignore": [
     "**/.*",
     "node_modules",
