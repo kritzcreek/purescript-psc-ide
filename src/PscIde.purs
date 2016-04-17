@@ -1,14 +1,15 @@
 module PscIde where
 
-import Control.Alt ((<|>))
-import Control.Monad.Aff (forkAll, Aff, makeAff)
-import Control.Monad.Eff (untilE, whileE, untilE, Eff)
-import Control.Monad.Eff.Exception (Error)
-import Data.Argonaut.Decode (class DecodeJson)
-import Data.Argonaut.Encode (class EncodeJson, encodeJson)
-import Data.Maybe (maybe', Maybe(..))
-import Prelude
 import PscIde.Command
+import Control.Alt ((<|>))
+import Control.Bind (join)
+import Control.Monad.Aff (Aff, makeAff)
+import Control.Monad.Eff (Eff)
+import Control.Monad.Eff.Exception (Error)
+import Data.Argonaut (class DecodeJson, class EncodeJson, encodeJson)
+import Data.Either (Either)
+import Data.Maybe (Maybe(..))
+import Prelude (Unit, pure, (<$>), (>>>), show)
 
 foreign import data NET :: !
 
@@ -20,9 +21,14 @@ foreign import send :: forall eff.
   Eff (net :: NET | eff) Unit
 
 type Cmd a = forall eff. Aff (net :: NET | eff) (Result a)
+type CmdR a b = forall eff. Aff (net :: NET | eff) (Result (Either a b))
+
+sendCommandR :: forall i oe o. (EncodeJson i, DecodeJson oe, DecodeJson o) => i -> CmdR oe o
+sendCommandR c = makeAff (\err succ -> send (show (encodeJson c)) 4242 (unwrapResponse >>> succ) err)
 
 sendCommand :: forall i o. (EncodeJson i, DecodeJson o) => i -> Cmd o
-sendCommand c = makeAff (\err succ -> send (show (encodeJson c)) 4242 (unwrapResponse >>> succ) err)
+sendCommand c = makeAff (\err succ -> send (show (encodeJson c)) 4242 (unwrapResponse >>> join >>> succ) err)
+
 
 cwd :: Cmd Message
 cwd = sendCommand Cwd
@@ -71,7 +77,7 @@ suggestTypos ::
   String ->
   Int ->
   Cmd (Array Completion)
-suggestTypos q m = (<|> (pure [])) <$> complete [] (Just (Distance q m))
+suggestTypos q m = (_ <|> pure []) <$> complete [] (Just (Distance q m))
 
 addClause :: String -> Boolean -> Cmd (Array String)
 addClause line annotations = sendCommand (AddClause line annotations)
@@ -85,3 +91,6 @@ implicitImport infile outfile filters mod = sendCommand (ImportCmd infile outfil
 
 explicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
 explicitImport infile outfile filters ident = sendCommand (ImportCmd infile outfile filters (AddImport ident))
+
+rebuild :: String -> CmdR (Array RebuildError) (Array RebuildError)
+rebuild file = sendCommandR (RebuildCmd file)
