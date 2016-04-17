@@ -16,7 +16,7 @@
     "purescript-argonaut": "~0.12.0",
     "purescript-arrays": "~0.4.4",
     "purescript-maybe": "~0.3.5",
-    "purescript-aff": "~0.14.0"
+    "purescript-aff": "~0.16.0"
   },
   "repository": {
     "type": "git",
