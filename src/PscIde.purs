@@ -92,5 +92,5 @@ implicitImport infile outfile filters mod = sendCommand (ImportCmd infile outfil
 explicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
 explicitImport infile outfile filters ident = sendCommand (ImportCmd infile outfile filters (AddImport ident))
 
-rebuild :: String -> CmdR (Array RebuildError) (Array RebuildError)
+rebuild :: String -> CmdR RebuildResult RebuildResult
 rebuild file = sendCommandR (RebuildCmd file)

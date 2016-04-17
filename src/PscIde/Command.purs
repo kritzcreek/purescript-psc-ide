@@ -7,6 +7,7 @@ import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson)
 import Data.Argonaut.Encode (class EncodeJson, encodeJson)
 import Data.Argonaut.Parser (jsonParser)
+import Data.Array (singleton)
 import Data.Either (either, Either(..))
 import Data.Maybe (Maybe(..), maybe)
 
@@ -144,7 +145,7 @@ instance encodeCommand :: EncodeJson Command where
       ~> jsonEmptyObject
       )
   encodeJson (RebuildCmd file) =
-    commandWrapper "import" (
+    commandWrapper "rebuild" (
       "file" := encodeJson file
       ~> jsonEmptyObject
       )
@@ -185,6 +186,7 @@ newtype RebuildError =
   { position :: Maybe {line :: Int, column :: Int}
   , message :: String
   }
+newtype RebuildResult = RebuildResult (Array RebuildError)
 
 data ImportType = Implicit | Explicit (Array String) | Hiding (Array String)
 
@@ -270,3 +272,6 @@ instance decodeRebuildError :: DecodeJson RebuildError where
     pure (RebuildError { message, position})
     where
       eitherToMaybe = either (const Nothing) Just
+
+instance decodeRebuildResult :: DecodeJson RebuildResult where
+  decodeJson json = RebuildResult <$> (decodeJson json <|> (singleton <$> decodeJson json))
