@@ -23,11 +23,19 @@ foreign import send :: forall eff.
 type Cmd a = forall eff. Aff (net :: NET | eff) (Result a)
 type CmdR a b = forall eff. Aff (net :: NET | eff) (Result (Either a b))
 
-sendCommandR :: forall i oe o. (EncodeJson i, DecodeJson oe, DecodeJson o) => i -> CmdR oe o
-sendCommandR c = makeAff (\err succ -> send (show (encodeJson c)) 4242 (unwrapResponse >>> succ) err)
+sendCommandG :: forall i oe o. (EncodeJson i, DecodeJson oe, DecodeJson o) =>
+                Int -> i -> (String -> Result (Either oe o)) -> CmdR oe o
+sendCommandG port command unwrapper =
+  makeAff (\err succ ->
+            send (show (encodeJson command)) port (unwrapper >>> succ) err)
+
+sendCommandR :: forall i oe o. (EncodeJson i, DecodeJson oe, DecodeJson o) => Int -> i -> CmdR oe o
+sendCommandR port command = sendCommandG port command unwrapResponse
 
 sendCommand :: forall i o. (EncodeJson i, DecodeJson o) => i -> Cmd o
-sendCommand c = makeAff (\err succ -> send (show (encodeJson c)) 4242 (unwrapResponse >>> join >>> succ) err)
+sendCommand command =
+  makeAff (\err succ ->
+            send (show (encodeJson command)) 4242 (unwrapResponse >>> join >>> succ) err)
 
 
 cwd :: Cmd Message
@@ -92,5 +100,5 @@ implicitImport infile outfile filters mod = sendCommand (ImportCmd infile outfil
 explicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
 explicitImport infile outfile filters ident = sendCommand (ImportCmd infile outfile filters (AddImport ident))
 
-rebuild :: String -> CmdR RebuildResult RebuildResult
-rebuild file = sendCommandR (RebuildCmd file)
+rebuild :: Int -> String -> CmdR RebuildResult RebuildResult
+rebuild port file = sendCommandR port (RebuildCmd file)
