@@ -32,73 +32,77 @@ sendCommandG port command unwrapper =
 sendCommandR :: forall i oe o. (EncodeJson i, DecodeJson oe, DecodeJson o) => Int -> i -> CmdR oe o
 sendCommandR port command = sendCommandG port command unwrapResponse
 
-sendCommand :: forall i o. (EncodeJson i, DecodeJson o) => i -> Cmd o
-sendCommand command =
+sendCommand :: forall i o. (EncodeJson i, DecodeJson o) => Int -> i -> Cmd o
+sendCommand port command =
   makeAff (\err succ ->
-            send (show (encodeJson command)) 4242 (unwrapResponse >>> join >>> succ) err)
+            send (show (encodeJson command)) port (unwrapResponse >>> join >>> succ) err)
 
 
-cwd :: Cmd Message
-cwd = sendCommand Cwd
+cwd :: Int -> Cmd Message
+cwd port = sendCommand port Cwd
 
 
-listLoadedModules :: Cmd ModuleList
-listLoadedModules = sendCommand (Ls LoadedModules)
+listLoadedModules :: Int -> Cmd ModuleList
+listLoadedModules port = sendCommand port (Ls LoadedModules)
 
 
-listAvailableModules :: Cmd ModuleList
-listAvailableModules = sendCommand (Ls AvailableModules)
+listAvailableModules :: Int -> Cmd ModuleList
+listAvailableModules port = sendCommand port (Ls AvailableModules)
 
 
-listImports :: String -> Cmd ImportList
-listImports fp = sendCommand (Ls (Imports fp))
+listImports :: Int -> String -> Cmd ImportList
+listImports port fp = sendCommand port (Ls (Imports fp))
 
 
 load ::
+  Int ->
   Array String ->
   Array String ->
   Cmd Message
-load ms ds = sendCommand (Load ms ds)
+load port ms ds = sendCommand port (Load ms ds)
 
 
-quit :: Cmd Message
-quit = sendCommand Quit
+quit :: Int -> Cmd Message
+quit port = sendCommand port Quit
 
 
-pursuitCompletion :: String -> Cmd (Array PursuitCompletion)
-pursuitCompletion q = sendCommand (Pursuit Ident q)
+pursuitCompletion :: Int -> String -> Cmd (Array PursuitCompletion)
+pursuitCompletion port q = sendCommand port (Pursuit Ident q)
 
 
 complete ::
+  Int ->
   Array Filter ->
   Maybe Matcher ->
   Cmd (Array Completion)
-complete fs m = sendCommand (Complete fs m)
+complete port fs m = sendCommand port (Complete fs m)
 
 type' ::
+  Int ->
   String ->
   Array Filter ->
   Cmd (Array Completion)
-type' s fs = sendCommand (Type s fs)
+type' port s fs = sendCommand port (Type s fs)
 
 suggestTypos ::
+  Int ->
   String ->
   Int ->
   Cmd (Array Completion)
-suggestTypos q m = (_ <|> pure []) <$> complete [] (Just (Distance q m))
+suggestTypos port q m = (_ <|> pure []) <$> complete port [] (Just (Distance q m))
 
-addClause :: String -> Boolean -> Cmd (Array String)
-addClause line annotations = sendCommand (AddClause line annotations)
+addClause :: Int -> String -> Boolean -> Cmd (Array String)
+addClause port line annotations = sendCommand port (AddClause line annotations)
 
-caseSplit :: String -> Int -> Int -> Boolean -> String -> Cmd (Array String)
-caseSplit line begin end annotations typ =
-  sendCommand (CaseSplit line begin end annotations typ)
+caseSplit :: Int -> String -> Int -> Int -> Boolean -> String -> Cmd (Array String)
+caseSplit port line begin end annotations typ =
+  sendCommand port (CaseSplit line begin end annotations typ)
 
-implicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
-implicitImport infile outfile filters mod = sendCommand (ImportCmd infile outfile filters (AddImplicitImport mod))
+implicitImport :: Int -> String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
+implicitImport port infile outfile filters mod = sendCommand port (ImportCmd infile outfile filters (AddImplicitImport mod))
 
-explicitImport :: String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
-explicitImport infile outfile filters ident = sendCommand (ImportCmd infile outfile filters (AddImport ident))
+explicitImport :: Int -> String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
+explicitImport port infile outfile filters ident = sendCommand port (ImportCmd infile outfile filters (AddImport ident))
 
 rebuild :: Int -> String -> CmdR RebuildResult RebuildResult
 rebuild port file = sendCommandR port (RebuildCmd file)
