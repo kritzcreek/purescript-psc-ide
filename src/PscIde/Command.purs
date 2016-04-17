@@ -268,7 +268,7 @@ instance decodeRebuildError :: DecodeJson RebuildError where
     message <- o .? "message"
     position <- pure $ eitherToMaybe do
       p <- o .? "position"
-      { line: _, column: _ } <$> p .? "line" <*> p .? "column"
+      { line: _, column: _ } <$> p .? "startLine" <*> p .? "startColumn"
     pure (RebuildError { message, position})
     where
       eitherToMaybe = either (const Nothing) Just
