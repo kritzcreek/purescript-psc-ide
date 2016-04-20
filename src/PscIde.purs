@@ -13,82 +13,55 @@ import Prelude (Unit, pure, (<$>), (>>>), show)
 
 foreign import data NET :: !
 
-foreign import send :: forall eff.
-  String -> -- ^ Command
-  Int ->  -- ^ Port
-  (String -> Eff (net :: NET | eff) Unit) -> -- ^ Callback
-  (Error -> Eff (net :: NET | eff) Unit) -> -- ^ Error Callback
-  Eff (net :: NET | eff) Unit
+foreign import send
+  :: forall eff.
+  String  -- ^ Command
+  -> Int -- ^ Port
+  -> (String -> Eff (net :: NET | eff) Unit)  -- ^ Callback
+  -> (Error -> Eff (net :: NET | eff) Unit)  -- ^ Error Callback
+  -> Eff (net :: NET | eff) Unit
 
 type Cmd a = forall eff. Aff (net :: NET | eff) (Result a)
 type CmdR a b = forall eff. Aff (net :: NET | eff) (Result (Either a b))
 
-sendCommandG :: forall i oe o. (EncodeJson i, DecodeJson oe, DecodeJson o) =>
-                Int -> i -> (String -> Result (Either oe o)) -> CmdR oe o
-sendCommandG port command unwrapper =
-  makeAff (\err succ ->
-            send (show (encodeJson command)) port (unwrapper >>> succ) err)
-
 sendCommandR :: forall i oe o. (EncodeJson i, DecodeJson oe, DecodeJson o) => Int -> i -> CmdR oe o
-sendCommandR port command = sendCommandG port command unwrapResponse
+sendCommandR port command =
+  makeAff \err succ ->
+            send (show (encodeJson command)) port (unwrapResponse >>> succ) err
 
 sendCommand :: forall i o. (EncodeJson i, DecodeJson o) => Int -> i -> Cmd o
 sendCommand port command =
-  makeAff (\err succ ->
-            send (show (encodeJson command)) port (unwrapResponse >>> join >>> succ) err)
-
+  makeAff \err succ ->
+            send (show (encodeJson command)) port (unwrapResponse >>> join >>> succ) err
 
 cwd :: Int -> Cmd Message
 cwd port = sendCommand port Cwd
 
-
 listLoadedModules :: Int -> Cmd ModuleList
 listLoadedModules port = sendCommand port (Ls LoadedModules)
-
 
 listAvailableModules :: Int -> Cmd ModuleList
 listAvailableModules port = sendCommand port (Ls AvailableModules)
 
-
 listImports :: Int -> String -> Cmd ImportList
 listImports port fp = sendCommand port (Ls (Imports fp))
 
-
-load ::
-  Int ->
-  Array String ->
-  Array String ->
-  Cmd Message
+load :: Int -> Array String -> Array String -> Cmd Message
 load port ms ds = sendCommand port (Load ms ds)
-
 
 quit :: Int -> Cmd Message
 quit port = sendCommand port Quit
 
-
 pursuitCompletion :: Int -> String -> Cmd (Array PursuitCompletion)
 pursuitCompletion port q = sendCommand port (Pursuit Ident q)
 
-
-complete ::
-  Int ->
-  Array Filter ->
-  Maybe Matcher ->
-  Cmd (Array Completion)
+complete :: Int -> Array Filter -> Maybe Matcher -> Cmd (Array Completion)
 complete port fs m = sendCommand port (Complete fs m)
 
-type' ::
-  Int ->
-  String ->
-  Array Filter ->
-  Cmd (Array Completion)
+type':: Int -> String -> Array Filter -> Cmd (Array Completion)
 type' port s fs = sendCommand port (Type s fs)
 
-suggestTypos ::
-  Int ->
-  String ->
-  Int ->
-  Cmd (Array Completion)
+suggestTypos :: Int -> String -> Int -> Cmd (Array Completion)
 suggestTypos port q m = (_ <|> pure []) <$> complete port [] (Just (Distance q m))
 
 addClause :: Int -> String -> Boolean -> Cmd (Array String)
