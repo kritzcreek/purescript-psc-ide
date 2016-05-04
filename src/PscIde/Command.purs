@@ -184,6 +184,9 @@ newtype Import = Import
 newtype RebuildError =
   RebuildError
   { position :: Maybe {line :: Int, column :: Int}
+  , moduleName :: Maybe String
+  , filename :: Maybe String
+  , errorCode :: String
   , message :: String
   }
 newtype RebuildResult = RebuildResult (Array RebuildError)
@@ -266,10 +269,13 @@ instance decodeRebuildError :: DecodeJson RebuildError where
   decodeJson json = do
     o <- decodeJson json
     message <- o .? "message"
+    errorCode <- o .? "errorCode"
+    moduleName <- o .? "moduleName"
+    filename <- o .? "filename"
     position <- pure $ eitherToMaybe do
       p <- o .? "position"
       { line: _, column: _ } <$> p .? "startLine" <*> p .? "startColumn"
-    pure (RebuildError { message, position})
+    pure (RebuildError { errorCode, moduleName, filename, message, position})
     where
       eitherToMaybe = either (const Nothing) Just
 
