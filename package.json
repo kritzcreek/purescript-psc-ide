@@ -1,0 +1,16 @@
+{
+  "name": "purescript-psc-ide",
+  "dependencies": {
+    "which": "^1.2.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kRITZCREEK/purescript-psc-ide.git"
+  },
+  "author": "kRITZCREEK",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kRITZCREEK/purescript-psc-ide/issues"
+  },
+  "homepage": "https://github.com/kRITZCREEK/purescript-psc-ide#readme"
+}
