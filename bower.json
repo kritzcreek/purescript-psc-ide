@@ -16,7 +16,9 @@
     "purescript-argonaut": "~0.12.0",
     "purescript-arrays": "~0.4.4",
     "purescript-maybe": "~0.3.5",
-    "purescript-aff": "~0.16.0"
+    "purescript-aff": "~0.16.0",
+    "purescript-node-fs": "^0.11.0",
+    "purescript-node-child-process": "^0.6.1"
   },
   "repository": {
     "type": "git",
