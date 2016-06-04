@@ -69,9 +69,9 @@ data Command =
   | Ls ListType
   | Quit
   | Load (Array String) (Array String)
-  | Complete (Array Filter) (Maybe Matcher)
+  | Complete (Array Filter) (Maybe Matcher) (Maybe String)
   | Pursuit PursuitType String
-  | Type String (Array Filter)
+  | Type String (Array Filter) (Maybe String)
   | AddClause String Boolean
   | CaseSplit String Int Int Boolean String
   | ImportCmd FileName (Maybe FileName) (Array Filter) ImportCommand
@@ -103,10 +103,11 @@ instance encodeCommand :: EncodeJson Command where
       ~> "dependencies" := (encodeJson dependencies)
       ~> jsonEmptyObject
       )
-  encodeJson (Complete filters matcher) =
+  encodeJson (Complete filters matcher currentModule) =
     commandWrapper "complete" (
       "filters" := (encodeJson filters)
       ~> "matcher" := (encodeJson matcher)
+      ~> "currentModule" := (encodeJson currentModule)
       ~> jsonEmptyObject
       )
   encodeJson (Pursuit psType q) =
@@ -115,10 +116,11 @@ instance encodeCommand :: EncodeJson Command where
         ~> "query" := q
         ~> jsonEmptyObject
       )
-  encodeJson (Type text filters) =
+  encodeJson (Type text filters currentModule) =
     commandWrapper "type" (
         "search" := encodeJson text
         ~> "filters" := (encodeJson filters)
+        ~> "currentModule" := (encodeJson currentModule)
         ~> jsonEmptyObject
       )
   encodeJson (AddClause line annotations) =
