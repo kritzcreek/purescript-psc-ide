@@ -55,14 +55,14 @@ quit port = sendCommand port Quit
 pursuitCompletion :: Int -> String -> Cmd (Array PursuitCompletion)
 pursuitCompletion port q = sendCommand port (Pursuit Ident q)
 
-complete :: Int -> Array Filter -> Maybe Matcher -> Cmd (Array Completion)
-complete port fs m = sendCommand port (Complete fs m)
+complete :: Int -> Array Filter -> Maybe Matcher -> Maybe String -> Cmd (Array Completion)
+complete port fs m mod = sendCommand port (Complete fs m mod)
 
-type':: Int -> String -> Array Filter -> Cmd (Array Completion)
-type' port s fs = sendCommand port (Type s fs)
+type':: Int -> String -> Array Filter -> Maybe String-> Cmd (Array Completion)
+type' port s fs mod = sendCommand port (Type s fs mod)
 
-suggestTypos :: Int -> String -> Int -> Cmd (Array Completion)
-suggestTypos port q m = (_ <|> pure []) <$> complete port [] (Just (Distance q m))
+suggestTypos :: Int -> String -> Int -> Maybe String -> Cmd (Array Completion)
+suggestTypos port q m mod = (_ <|> pure []) <$> complete port [] (Just (Distance q m)) mod
 
 addClause :: Int -> String -> Boolean -> Cmd (Array String)
 addClause port line annotations = sendCommand port (AddClause line annotations)
