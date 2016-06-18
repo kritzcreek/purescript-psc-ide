@@ -2,10 +2,9 @@ module PscIde.Command where
 
 import Prelude
 import Control.Alt ((<|>))
-import Data.Argonaut.Combinators ((~>), (:=), (.?))
 import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json, toString)
-import Data.Argonaut.Decode (class DecodeJson, decodeJson)
-import Data.Argonaut.Encode (class EncodeJson, encodeJson)
+import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
+import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Argonaut.Parser (jsonParser)
 import Data.Array (singleton)
 import Data.Either (either, Either(..))

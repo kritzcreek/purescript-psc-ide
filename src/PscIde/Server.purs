@@ -24,7 +24,7 @@ data ServerStartResult =
   | StartError String
 
 -- | Start a psc-ide server instance
-startServer ∷ forall eff. String → Int -> Maybe String
+startServer ∷ forall eff. String → Int → Maybe String
   → Aff (cp ∷ CHILD_PROCESS, console ∷ CONSOLE, avar ∷ AVAR | eff) ServerStartResult
 startServer exe port projectRoot = do
     cp <- liftEff (spawn exe ["-p", show port] defaultSpawnOptions { cwd = projectRoot })
@@ -32,7 +32,7 @@ startServer exe port projectRoot = do
                       onError cp (\_ -> succ $ StartError "psc-ide-server error")
                       onClose cp (\exit -> case exit of
                                      (Normally 0) -> succ Closed
-                                     (Normally n) -> succ $ StartError $ "Error code returned: "++ show n
+                                     (Normally n) -> succ $ StartError $ "Error code returned: "<> show n
                                      _ -> succ $ StartError "Other close error")
 
     runPar (Par handleErr <|> Par (later' 100 $ pure $ Started cp))
