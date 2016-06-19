@@ -16,9 +16,10 @@
     "purescript-argonaut": "^1.0.0",
     "purescript-arrays": "^1.0.0",
     "purescript-maybe": "^1.0.0",
-    "purescript-aff": "~0.17.0",
+    "purescript-aff": "^1.0.0",
     "purescript-node-fs": "^1.0.0",
-    "purescript-node-child-process": "purescript-node/purescript-node-child-process#1.0-updates"
+    "purescript-node-child-process": "purescript-node/purescript-node-child-process#1.0-updates",
+    "purescript-parallel": "~1.0.0"
   },
   "repository": {
     "type": "git",
