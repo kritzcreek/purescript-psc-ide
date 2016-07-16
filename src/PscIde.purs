@@ -58,7 +58,7 @@ pursuitCompletion port q = sendCommand port (Pursuit Ident q)
 complete :: Int -> Array Filter -> Maybe Matcher -> Maybe String -> Cmd (Array Completion)
 complete port fs m mod = sendCommand port (Complete fs m mod)
 
-type':: Int -> String -> Array Filter -> Maybe String-> Cmd (Array Completion)
+type':: Int -> String -> Array Filter -> Maybe String-> Cmd (Array TypeInfo)
 type' port s fs mod = sendCommand port (Type s fs mod)
 
 suggestTypos :: Int -> String -> Int -> Maybe String -> Cmd (Array Completion)
