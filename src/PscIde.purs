@@ -52,6 +52,9 @@ load port ms ds = sendCommand port (Load ms ds)
 quit :: Int -> Cmd Message
 quit port = sendCommand port Quit
 
+reset :: Int -> Cmd Message
+reset port = sendCommand port Reset
+
 pursuitCompletion :: Int -> String -> Cmd (Array PursuitCompletion)
 pursuitCompletion port q = sendCommand port (Pursuit Ident q)
 
