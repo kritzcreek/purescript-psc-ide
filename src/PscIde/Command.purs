@@ -66,6 +66,7 @@ data Command =
   Cwd
   | Ls ListType
   | Quit
+  | Reset
   | Load (Array String) (Array String)
   | Complete (Array Filter) (Maybe Matcher) (Maybe String)
   | Pursuit PursuitType String
@@ -95,6 +96,7 @@ instance encodeCommand :: EncodeJson Command where
   encodeJson (Ls (Imports fp)) =
     commandWrapper "list" ("type" := "import" ~> "file" := fp ~> jsonEmptyObject)
   encodeJson Quit = jsonSingletonObject' "command" "quit"
+  encodeJson Reset = jsonSingletonObject' "command" "reset"
   encodeJson (Load modules dependencies) =
     commandWrapper "load" (
       "modules" := (encodeJson modules)
