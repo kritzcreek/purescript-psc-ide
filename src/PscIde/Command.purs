@@ -23,7 +23,6 @@ data Matcher =
   Flex String
   | Distance String Int
 
-
 instance encodeMatcher :: EncodeJson Matcher where
   encodeJson (Flex q) =
     "matcher" := "flex"
@@ -170,7 +169,14 @@ type GenCompletion a = {
   | a
 }
 
+newtype TypePosition = TypePosition {
+  name :: String,
+  start :: Position,
+  end :: Position
+}
+
 newtype Completion = Completion (GenCompletion ())
+newtype TypeInfo = TypeInfo (GenCompletion (definedAt :: Maybe TypePosition))
 newtype PursuitCompletion = PursuitCompletion (GenCompletion (package :: String))
 newtype ModuleList = ModuleList (Array String)
 newtype Message = Message String
@@ -182,9 +188,11 @@ newtype Import = Import
     qualifier  :: Maybe String
   }
 
+type Position = {line :: Int, column :: Int}
+
 newtype RebuildError =
   RebuildError
-  { position :: Maybe {line :: Int, column :: Int}
+  { position :: Maybe Position
   , moduleName :: Maybe String
   , filename :: Maybe String
   , errorCode :: String
@@ -221,7 +229,27 @@ instance decodeCompletion :: DecodeJson Completion where
     identifier <- o .? "identifier"
     type' <- o .? "type"
     module' <- o .? "module"
-    pure (Completion {identifier: identifier, type': type', module': module'})
+    pure (Completion { identifier, type', module' })
+
+instance decodeTypeInfo :: DecodeJson TypeInfo where
+  decodeJson json = do
+    o <- decodeJson json
+    identifier <- o .? "identifier"
+    type' <- o .? "type"
+    module' <- o .? "module"
+    definedAt <- o .? "definedAt"
+    pure (TypeInfo { identifier, type', module', definedAt })
+
+instance decodeTypePosition :: DecodeJson TypePosition where
+  decodeJson json = do
+    o <- decodeJson json
+    name <- o .? "name"
+    start <- o .? "start"
+    end <- o .? "end"
+    case start, end of
+      [sl, sc], [el, ec] ->
+        Right (TypePosition { name, start: { line: sl, column: sc }, end: { line: el, column: ec } })
+      _, _ -> Left "Start/end should be arrays"
 
 instance decodePursuitCompletion :: DecodeJson PursuitCompletion where
   decodeJson json = do
