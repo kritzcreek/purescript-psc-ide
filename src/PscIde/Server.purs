@@ -32,15 +32,42 @@ data ServerStartResult =
   | Closed
   | StartError String
 
-startServer ∷ forall eff. String → Int → Maybe String
-  → Aff (cp ∷ CHILD_PROCESS, console ∷ CONSOLE, avar ∷ AVAR | eff) ServerStartResult
-startServer = startServer' pipe
+type PscIdeServerArgs = {
+  exe :: String,
+  cwd :: Maybe String,
+  stdio :: Array (Maybe StdIOBehaviour),
+  source :: Array String, -- source globs
+  port :: Maybe Int,
+  directory :: Maybe String,
+  outputDirectory :: Maybe String,
+  watch :: Boolean,
+  debug :: Boolean
+}
+
+defaultServerArgs :: PscIdeServerArgs
+defaultServerArgs = {
+  exe: "psc-ide-server",
+  cwd: Nothing,
+  stdio: pipe,
+  source: [],
+  port: Nothing,
+  directory: Nothing,
+  outputDirectory: Nothing,
+  watch: true,
+  debug: false
+}
 
 -- | Start a psc-ide server instance
-startServer' ∷ forall eff. Array (Maybe StdIOBehaviour) → String → Int → Maybe String
-  → Aff (cp ∷ CHILD_PROCESS, console ∷ CONSOLE, avar ∷ AVAR | eff) ServerStartResult
-startServer' stdio exe port projectRoot = do
-    cp <- liftEff (spawn exe ["-p", show port] defaultSpawnOptions { cwd = projectRoot, stdio = stdio })
+startServer ∷ forall eff.  PscIdeServerArgs → Aff (cp ∷ CHILD_PROCESS, console ∷ CONSOLE, avar ∷ AVAR | eff) ServerStartResult
+startServer { stdio, exe, cwd, source, port, directory, outputDirectory, watch, debug } = do
+    cp <- liftEff (spawn exe (
+      (maybe [] (\p -> ["-p", show p]) port) <>
+      (maybe [] (\d -> ["-d", d]) directory) <>
+      (maybe [] (\od -> ["--output-directory", od]) outputDirectory) <>
+      (if watch then [] else ["--no-watch"]) <>
+      (if debug then ["--debug"] else []) <>
+      source
+      ) defaultSpawnOptions { cwd = cwd, stdio = stdio })
     let handleErr = makeAff \_ succ -> do
                       onError cp (\_ -> succ $ StartError "psc-ide-server error")
                       onClose cp (\exit -> case exit of
