@@ -1,5 +1,3 @@
-// module Node.Which
-
 var which = require('which');
 
 exports.whichImpl = function(path) {
@@ -10,7 +8,9 @@ exports.whichImpl = function(path) {
           if (err) {
             errcb(err)();
           }
-          cb(resolved)();
+          else {
+            cb(resolved)();
+          }
         });
       };
     };
