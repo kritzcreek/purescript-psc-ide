@@ -1,6 +1,7 @@
 module PscIde.Project where
 
 import Prelude
+import Data.String (contains)
 import Node.Path as NP
 import Control.Monad.Eff (Eff)
 import Data.Maybe (Maybe(..))
@@ -14,6 +15,8 @@ getRoot path =
       bower = NP.concat [path, "bower.json"] in
   if path == "" || path == parent then
     pure Nothing
+  else if contains "bower_components" path then
+    getRoot parent
   else do
     hasBower <- FS.exists bower
     if hasBower then pure $ Just path else getRoot parent
