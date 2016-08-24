@@ -9,22 +9,21 @@ import Control.Monad.Aff.AVar (AVAR)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE)
-import Control.Parallel.Class (parallel, runParallel)
-import Node.ChildProcess (CHILD_PROCESS, ChildProcess, StdIOBehaviour,
-                         Exit(Normally), onClose, onError, defaultSpawnOptions,
-                         spawn, defaultExecOptions, execFile, pipe)
 import Control.Monad.Eff.Exception (EXCEPTION, catchException)
 import Control.Monad.Eff.Random (RANDOM, randomInt)
+import Control.Parallel.Class (parallel, runParallel)
 import Data.Either (either)
 import Data.Int (fromNumber)
 import Data.Maybe (Maybe(Just, Nothing), maybe)
+import Data.StrMap (StrMap)
 import Data.Traversable (for)
 import Global (readInt)
 import Node.Buffer (BUFFER)
+import Node.ChildProcess (CHILD_PROCESS, ChildProcess, StdIOBehaviour, Exit(Normally), onClose, onError, defaultSpawnOptions, spawn, defaultExecOptions, execFile, pipe)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS (FS)
 import Node.FS.Sync (readTextFile, unlink, writeTextFile)
-import Node.Which (which)
+import Node.Which (which')
 import PscIde (NET, quit)
 
 data ServerStartResult =
@@ -106,12 +105,15 @@ stopServer port = void $ quit port
 data Executable = Executable String (Maybe String)
 
 findBins :: forall eff. String -> Aff (fs :: FS, buffer :: BUFFER, cp :: CHILD_PROCESS | eff) (Array Executable)
-findBins exe = do
-  bins <- which exe <|> pure []
+findBins = findBins' { path: Nothing, pathExt: Nothing, env: Nothing }
+
+findBins' :: forall eff. { path :: Maybe String, pathExt :: Maybe String, env :: Maybe (StrMap String) } -> String -> Aff (fs :: FS, buffer :: BUFFER, cp :: CHILD_PROCESS | eff) (Array Executable)
+findBins' { path, pathExt, env } exe = do
+  bins <- which' { path, pathExt } exe <|> pure []
   for bins \exe -> Executable exe <$> either (const Nothing) Just <$> attempt (getVersion exe)
 
   where
   getVersion :: forall eff'. String -> Aff (buffer :: BUFFER, cp :: CHILD_PROCESS | eff') String
   getVersion exe = makeAff $ \err succ ->
-    execFile exe ["--version"] defaultExecOptions \({error, stdout}) -> do
+    execFile exe ["--version"] (defaultExecOptions { env = env }) \({error, stdout}) -> do
       maybe (Buffer.readString UTF8 0 100 stdout >>= succ) err error
