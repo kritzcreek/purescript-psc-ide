@@ -2,6 +2,7 @@ module PscIde.Command where
 
 import Prelude
 import Control.Alt ((<|>))
+import Data.Argonaut (JObject, getField)
 import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
@@ -177,8 +178,11 @@ newtype TypePosition = TypePosition {
   end :: Position
 }
 
-newtype Completion = Completion (GenCompletion ())
-newtype TypeInfo = TypeInfo (GenCompletion (definedAt :: Maybe TypePosition))
+newtype TypeInfo = TypeInfo (GenCompletion (
+  definedAt :: Maybe TypePosition,
+  expandedType :: Maybe String,
+  documentation :: Maybe String
+))
 newtype PursuitCompletion = PursuitCompletion (GenCompletion (package :: String))
 newtype ModuleList = ModuleList (Array String)
 newtype Message = Message String
@@ -204,7 +208,7 @@ newtype RebuildResult = RebuildResult (Array RebuildError)
 
 data ImportType = Implicit | Explicit (Array String) | Hiding (Array String)
 
-data ImportResult = SuccessFile Message | SuccessText (Array String) | MultipleResults (Array Completion)
+data ImportResult = SuccessFile Message | SuccessText (Array String) | MultipleResults (Array TypeInfo)
 
 unwrapResponse :: forall a b. (DecodeJson a, DecodeJson b) => String -> Either String (Either a b)
 unwrapResponse s = do
@@ -225,22 +229,19 @@ instance decodeMessage :: DecodeJson Message where
 instance decodeModuleList :: DecodeJson ModuleList where
   decodeJson json = ModuleList <$> decodeJson json
 
-instance decodeCompletion :: DecodeJson Completion where
-  decodeJson json = do
-    o <- decodeJson json
-    identifier <- o .? "identifier"
-    type' <- o .? "type"
-    module' <- o .? "module"
-    pure (Completion { identifier, type', module' })
-
 instance decodeTypeInfo :: DecodeJson TypeInfo where
   decodeJson json = do
     o <- decodeJson json
     identifier <- o .? "identifier"
     type' <- o .? "type"
     module' <- o .? "module"
-    definedAt <- o .? "definedAt"
-    pure (TypeInfo { identifier, type', module', definedAt })
+    definedAt <- o `getFieldMaybe` "definedAt"
+    expandedType <- o `getFieldMaybe` "expandedType"
+    documentation <- o `getFieldMaybe` "documentation"
+    pure (TypeInfo { identifier, type', module', definedAt, expandedType, documentation })
+    where
+    getFieldMaybe :: forall a. (DecodeJson a) => JObject -> String -> Either String (Maybe a)
+    getFieldMaybe o f = Right $ either (const Nothing) Just $ getField o f
 
 instance decodeTypePosition :: DecodeJson TypePosition where
   decodeJson json = do
