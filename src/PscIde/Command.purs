@@ -278,16 +278,16 @@ instance decodeImport :: DecodeJson Import where
     o <- decodeJson json
     moduleName <- o .? "module"
     importType <- o .? "importType"
+    q <- (Just <$> o .? "qualifier") <|> pure Nothing
     case importType of
       "implicit" -> do
-        q <- (Just <$> o .? "qualifier") <|> pure Nothing
         pure $ Import {moduleName: moduleName, importType: Implicit, qualifier: q}
       "explicit" -> do
         identifiers <- o .? "identifiers"
-        pure $ Import {moduleName: moduleName, importType: Explicit identifiers, qualifier: Nothing}
+        pure $ Import {moduleName: moduleName, importType: Explicit identifiers, qualifier: q}
       "hiding"   -> do
         identifiers <- o .? "identifiers"
-        pure $ Import {moduleName: moduleName, importType: Hiding identifiers, qualifier: Nothing}
+        pure $ Import {moduleName: moduleName, importType: Hiding identifiers, qualifier: q}
       _ -> Left "unknown importType"
 
 instance decodeImportResult :: DecodeJson ImportResult where
