@@ -183,7 +183,13 @@ newtype TypeInfo = TypeInfo (GenCompletion (
   expandedType :: Maybe String,
   documentation :: Maybe String
 ))
-newtype PursuitCompletion = PursuitCompletion (GenCompletion (package :: String))
+newtype PursuitCompletion = PursuitCompletion {
+  type' :: Maybe String,
+  identifier :: String,
+  module' :: String,
+  package :: String,
+  text :: String
+  }
 newtype ModuleList = ModuleList (Array String)
 newtype Message = Message String
 newtype ImportList = ImportList (Array Import)
@@ -261,11 +267,13 @@ instance decodePursuitCompletion :: DecodeJson PursuitCompletion where
     type' <- o .? "type"
     module' <- o .? "module"
     package <- o .? "package"
+    text <- o .? "text"
     pure (PursuitCompletion {
       identifier: identifier,
       type': type',
       module': module',
-      package: package
+      package: package,
+      text: text
       })
 
 instance decodeImportList :: DecodeJson ImportList where
