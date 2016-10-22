@@ -11,10 +11,11 @@ import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION, catchException)
 import Control.Monad.Eff.Random (RANDOM, randomInt)
-import Control.Parallel.Class (parallel, runParallel)
+import Control.Parallel.Class (parallel)
 import Data.Either (either)
 import Data.Int (fromNumber)
 import Data.Maybe (Maybe(Just, Nothing), maybe)
+import Data.Newtype (unwrap)
 import Data.StrMap (StrMap)
 import Data.Traversable (for)
 import Global (readInt)
@@ -74,7 +75,7 @@ startServer { stdio, exe, cwd, source, port, directory, outputDirectory, watch, 
                                      (Normally n) -> succ $ StartError $ "Error code returned: "<> show n
                                      _ -> succ $ StartError "Other close error")
 
-    runParallel (parallel handleErr <|> parallel (later' 100 $ pure $ Started cp))
+    unwrap (parallel handleErr <|> parallel (later' 100 $ pure $ Started cp))
 
 -- | Construct path to the port file identifying the psc-ide-server port
 portFilePath :: String -> String
