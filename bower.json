@@ -1,6 +1,6 @@
 {
   "name": "purescript-psc-ide",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "moduleType": [
     "node"
   ],
