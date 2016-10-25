@@ -1,0 +1,17 @@
+{
+    "set": "psc-0.10.1",
+    "depends": [
+        "prelude",
+        "console",
+        "argonaut",
+        "arrays",
+        "maybe",
+        "aff",
+        "node-fs",
+        "node-child-process",
+        "parallel",
+        "random"
+    ],
+    "name": "psc-ide",
+    "source": "https://github.com/purescript/package-sets.git"
+}
