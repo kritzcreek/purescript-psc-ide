@@ -109,12 +109,12 @@ findBins :: forall eff. String -> Aff (fs :: FS, buffer :: BUFFER, cp :: CHILD_P
 findBins = findBins' { path: Nothing, pathExt: Nothing, env: Nothing }
 
 findBins' :: forall eff. { path :: Maybe String, pathExt :: Maybe String, env :: Maybe (StrMap String) } -> String -> Aff (fs :: FS, buffer :: BUFFER, cp :: CHILD_PROCESS | eff) (Array Executable)
-findBins' { path, pathExt, env } exe = do
-  bins <- which' { path, pathExt } exe <|> pure []
-  for bins \exe -> Executable exe <$> either (const Nothing) Just <$> attempt (getVersion exe)
+findBins' { path, pathExt, env } executable = do
+  bins <- which' { path, pathExt } executable <|> pure []
+  for bins \bin -> Executable bin <$> either (const Nothing) Just <$> attempt (getVersion bin)
 
   where
   getVersion :: forall eff'. String -> Aff (buffer :: BUFFER, cp :: CHILD_PROCESS | eff') String
-  getVersion exe = makeAff $ \err succ ->
-    execFile exe ["--version"] (defaultExecOptions { env = env }) \({error, stdout}) -> do
+  getVersion bin = makeAff $ \err succ ->
+    execFile bin ["--version"] (defaultExecOptions { env = env }) \({error, stdout}) -> do
       maybe (Buffer.readString UTF8 0 100 stdout >>= succ) err error
