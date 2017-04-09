@@ -217,7 +217,7 @@ data ImportType = Implicit | Explicit (Array String) | Hiding (Array String)
 
 data ImportResult = SuccessFile Message | SuccessText (Array String) | MultipleResults (Array TypeInfo)
 
-unwrapResponse :: forall a b. (DecodeJson a, DecodeJson b) => String -> Either String (Either a b)
+unwrapResponse :: forall a b. DecodeJson a => DecodeJson b => String -> Either String (Either a b)
 unwrapResponse s = do
   json <- jsonParser s
   o <- decodeJson json

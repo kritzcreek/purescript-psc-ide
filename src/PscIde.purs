@@ -4,14 +4,14 @@ import PscIde.Command
 import Control.Alt ((<|>))
 import Control.Bind (join)
 import Control.Monad.Aff (Aff, makeAff)
-import Control.Monad.Eff (Eff)
+import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Exception (Error)
 import Data.Argonaut (class DecodeJson, class EncodeJson, encodeJson)
 import Data.Either (Either)
 import Data.Maybe (Maybe(..))
 import Prelude (Unit, pure, (<$>), (>>>), show)
 
-foreign import data NET :: !
+foreign import data NET :: Effect
 
 foreign import send
   :: forall eff.
@@ -24,12 +24,12 @@ foreign import send
 type Cmd a = forall eff. Aff (net :: NET | eff) (Result a)
 type CmdR a b = forall eff. Aff (net :: NET | eff) (Result (Either a b))
 
-sendCommandR :: forall i oe o. (EncodeJson i, DecodeJson oe, DecodeJson o) => Int -> i -> CmdR oe o
+sendCommandR :: forall i oe o. EncodeJson i => DecodeJson oe => DecodeJson o => Int -> i -> CmdR oe o
 sendCommandR port command =
   makeAff \err succ ->
             send (show (encodeJson command)) port (unwrapResponse >>> succ) err
 
-sendCommand :: forall i o. (EncodeJson i, DecodeJson o) => Int -> i -> Cmd o
+sendCommand :: forall i o. EncodeJson i => DecodeJson o => Int -> i -> Cmd o
 sendCommand port command =
   makeAff \err succ ->
             send (show (encodeJson command)) port (unwrapResponse >>> join >>> succ) err
