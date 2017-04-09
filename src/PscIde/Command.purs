@@ -7,9 +7,10 @@ import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Argonaut.Parser (jsonParser)
-import Data.Array (singleton, head)
+import Data.Array (singleton)
 import Data.Either (either, Either(..))
 import Data.Maybe (Maybe(..), maybe)
+import Data.String (joinWith)
 
 data PursuitType = Package | Ident
 
@@ -281,9 +282,12 @@ instance decodeImportList :: DecodeJson ImportList where
     where
       decodeObject = do
         o <- decodeJson json
-        moduleName <- o .? "moduleName"
+        moduleNameField <- o .? "moduleName"
+        moduleName <- decodeModuleNameBug moduleNameField <|> decodeJson moduleNameField
         imports <- o .? "imports"
-        pure (ImportList { moduleName: head moduleName, imports })
+        pure (ImportList { moduleName: Just moduleName, imports })
+      -- TODO: Working around a bug where module Foo.Bar is jsonified as ["Foo", "Bar"] instead of "Foo.Bar"
+      decodeModuleNameBug moduleName = joinWith "." <$> decodeJson moduleName
       decodeArray = do
         imports <- decodeJson json
         pure (ImportList { moduleName: Nothing, imports })
