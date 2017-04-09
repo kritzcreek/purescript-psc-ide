@@ -4,7 +4,7 @@ import Prelude
 import Node.Buffer as Buffer
 import Node.Path as Path
 import Control.Alt ((<|>))
-import Control.Monad.Aff (attempt, Aff, later', makeAff)
+import Control.Monad.Aff (attempt, Aff, delay, makeAff)
 import Control.Monad.Aff.AVar (AVAR)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
@@ -17,6 +17,7 @@ import Data.Int (fromNumber)
 import Data.Maybe (Maybe(Just, Nothing), maybe)
 import Data.Newtype (unwrap)
 import Data.StrMap (StrMap)
+import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
 import Global (readInt)
 import Node.Buffer (BUFFER)
@@ -79,18 +80,18 @@ startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirec
                                      (Normally n) -> succ $ StartError $ "Error code returned: "<> show n
                                      _ -> succ $ StartError "Other close error")
 
-    unwrap (parallel handleErr <|> parallel (later' 100 $ pure $ Started cp))
+    unwrap (parallel handleErr <|> parallel (delay (Milliseconds 100.0) $> Started cp))
 
 -- | Construct path to the port file identifying the psc-ide-server port
 portFilePath :: String -> String
 portFilePath cwd = Path.concat [ cwd, ".psc-ide-port" ]
 
 -- | Save a port to the port file
-savePort :: forall eff. Int → String → Eff (fs :: FS, err :: EXCEPTION | eff) Unit
+savePort :: forall eff. Int → String → Eff (fs :: FS, exception :: EXCEPTION | eff) Unit
 savePort port cwd = writeTextFile UTF8 (portFilePath cwd) (show port)
 
 -- | Delete the port file
-deleteSavedPort :: forall eff. String → Eff (fs :: FS, err :: EXCEPTION | eff) Unit
+deleteSavedPort :: forall eff. String → Eff (fs :: FS, exception :: EXCEPTION | eff) Unit
 deleteSavedPort cwd = unlink (portFilePath cwd)
 
 -- | Get the saved port for the given project directory (if present)

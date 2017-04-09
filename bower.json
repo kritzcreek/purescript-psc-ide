@@ -12,15 +12,15 @@
     "output"
   ],
   "dependencies": {
-    "purescript-console": "^2.0.0",
-    "purescript-argonaut": "^2.0.0",
-    "purescript-arrays": "^3.0.0",
-    "purescript-maybe": "^2.0.0",
-    "purescript-aff": "^2.0.0",
-    "purescript-node-fs": "^3.0.0",
-    "purescript-node-child-process": "^3.0.0",
-    "purescript-parallel": "^2.0.0",
-    "purescript-random": "^2.0.0"
+    "purescript-console": "^3.0.0",
+    "purescript-argonaut": "^3.0.0",
+    "purescript-arrays": "^4.0.1",
+    "purescript-maybe": "^3.0.0",
+    "purescript-aff": "^3.0.0",
+    "purescript-node-fs": "^4.0.0",
+    "purescript-node-child-process": "^4.0.0",
+    "purescript-parallel": "^3.0.0",
+    "purescript-random": "^3.0.0"
   },
   "repository": {
     "type": "git",
