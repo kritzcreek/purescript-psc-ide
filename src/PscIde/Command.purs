@@ -7,7 +7,7 @@ import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Argonaut.Parser (jsonParser)
-import Data.Array (singleton)
+import Data.Array (singleton, head)
 import Data.Either (either, Either(..))
 import Data.Maybe (Maybe(..), maybe)
 
@@ -192,7 +192,7 @@ newtype PursuitCompletion = PursuitCompletion {
   }
 newtype ModuleList = ModuleList (Array String)
 newtype Message = Message String
-newtype ImportList = ImportList (Array Import)
+newtype ImportList = ImportList { moduleName :: Maybe String, imports :: Array Import }
 newtype Import = Import
   {
     moduleName :: String,
@@ -277,9 +277,16 @@ instance decodePursuitCompletion :: DecodeJson PursuitCompletion where
       })
 
 instance decodeImportList :: DecodeJson ImportList where
-  decodeJson json = do
-    imports <- decodeJson json
-    pure (ImportList imports)
+  decodeJson json = decodeObject <|> decodeArray
+    where
+      decodeObject = do
+        o <- decodeJson json
+        moduleName <- o .? "moduleName"
+        imports <- o .? "imports"
+        pure (ImportList { moduleName: head moduleName, imports })
+      decodeArray = do
+        imports <- decodeJson json
+        pure (ImportList { moduleName: Nothing, imports })
 
 instance decodeImport :: DecodeJson Import where
   decodeJson json = do

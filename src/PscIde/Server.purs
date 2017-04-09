@@ -34,6 +34,7 @@ data ServerStartResult =
 
 type PscIdeServerArgs = {
   exe :: String,
+  combinedExe :: Boolean,
   cwd :: Maybe String,
   stdio :: Array (Maybe StdIOBehaviour),
   source :: Array String, -- source globs
@@ -46,7 +47,8 @@ type PscIdeServerArgs = {
 
 defaultServerArgs :: PscIdeServerArgs
 defaultServerArgs = {
-  exe: "psc-ide-server",
+  exe: "purs",
+  combinedExe: true,
   cwd: Nothing,
   stdio: pipe,
   source: [],
@@ -59,8 +61,9 @@ defaultServerArgs = {
 
 -- | Start a psc-ide server instance
 startServer ∷ forall eff.  PscIdeServerArgs → Aff (cp ∷ CHILD_PROCESS, console ∷ CONSOLE, avar ∷ AVAR | eff) ServerStartResult
-startServer { stdio, exe, cwd, source, port, directory, outputDirectory, watch, debug } = do
+startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirectory, watch, debug } = do
     cp <- liftEff (spawn exe (
+      (if combinedExe then ["ide", "server"] else []) <>
       (maybe [] (\p -> ["-p", show p]) port) <>
       (maybe [] (\d -> ["-d", d]) directory) <>
       (maybe [] (\od -> ["--output-directory", od]) outputDirectory) <>
