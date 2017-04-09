@@ -10,6 +10,7 @@ import Data.Argonaut.Parser (jsonParser)
 import Data.Array (singleton)
 import Data.Either (either, Either(..))
 import Data.Maybe (Maybe(..), maybe)
+import Data.String (joinWith)
 
 data PursuitType = Package | Ident
 
@@ -192,7 +193,7 @@ newtype PursuitCompletion = PursuitCompletion {
   }
 newtype ModuleList = ModuleList (Array String)
 newtype Message = Message String
-newtype ImportList = ImportList (Array Import)
+newtype ImportList = ImportList { moduleName :: Maybe String, imports :: Array Import }
 newtype Import = Import
   {
     moduleName :: String,
@@ -277,9 +278,19 @@ instance decodePursuitCompletion :: DecodeJson PursuitCompletion where
       })
 
 instance decodeImportList :: DecodeJson ImportList where
-  decodeJson json = do
-    imports <- decodeJson json
-    pure (ImportList imports)
+  decodeJson json = decodeObject <|> decodeArray
+    where
+      decodeObject = do
+        o <- decodeJson json
+        moduleNameField <- o .? "moduleName"
+        moduleName <- decodeModuleNameBug moduleNameField <|> decodeJson moduleNameField
+        imports <- o .? "imports"
+        pure (ImportList { moduleName: Just moduleName, imports })
+      -- TODO: Working around a bug where module Foo.Bar is jsonified as ["Foo", "Bar"] instead of "Foo.Bar"
+      decodeModuleNameBug moduleName = joinWith "." <$> decodeJson moduleName
+      decodeArray = do
+        imports <- decodeJson json
+        pure (ImportList { moduleName: Nothing, imports })
 
 instance decodeImport :: DecodeJson Import where
   decodeJson json = do
