@@ -48,6 +48,7 @@ type PscIdeServerArgs = {
 defaultServerArgs :: PscIdeServerArgs
 defaultServerArgs = {
   exe: "purs",
+  -- TODO: Remove combinedExe when support for the non-combined executable can be removed
   combinedExe: true,
   cwd: Nothing,
   stdio: pipe,
