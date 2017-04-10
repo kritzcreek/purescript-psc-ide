@@ -3,7 +3,7 @@ module PscIde.Command where
 import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut (JObject, getField)
-import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, Json, toString)
+import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Argonaut.Parser (jsonParser)
@@ -108,8 +108,8 @@ instance encodeCommand :: EncodeJson Command where
   encodeJson (Complete filters matcher currentModule) =
     commandWrapper "complete" (
       "filters" := (encodeJson filters)
-      ~> "matcher" := (encodeJson matcher)
-      ~> "currentModule" := (encodeJson currentModule)
+      ~> "matcher" := (encodeMaybeNull matcher)
+      ~> "currentModule" := (encodeMaybeNull currentModule)
       ~> jsonEmptyObject
       )
   encodeJson (Pursuit psType q) =
@@ -122,7 +122,7 @@ instance encodeCommand :: EncodeJson Command where
     commandWrapper "type" (
         "search" := encodeJson text
         ~> "filters" := (encodeJson filters)
-        ~> "currentModule" := (encodeJson currentModule)
+        ~> "currentModule" := (encodeMaybeNull currentModule)
         ~> jsonEmptyObject
       )
   encodeJson (AddClause line annotations) =
@@ -143,7 +143,7 @@ instance encodeCommand :: EncodeJson Command where
   encodeJson (ImportCmd inFile outFile filters cmd) =
     commandWrapper "import" (
       "file" := encodeJson inFile
-      ~> "outfile" := encodeJson outFile
+      ~> "outfile" := encodeMaybeNull outFile
       ~> "filters" := encodeJson filters
       ~> "importCommand" := encodeJson cmd
       ~> jsonEmptyObject
@@ -153,6 +153,9 @@ instance encodeCommand :: EncodeJson Command where
       "file" := encodeJson file
       ~> jsonEmptyObject
       )
+
+encodeMaybeNull :: forall a. (EncodeJson a) => Maybe a -> Json
+encodeMaybeNull = maybe jsonNull encodeJson
 
 instance encodeImportCommand :: EncodeJson ImportCommand where
   encodeJson (AddImplicitImport ident) =
