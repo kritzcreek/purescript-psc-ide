@@ -64,13 +64,24 @@ instance encodeFilter :: EncodeJson Filter where
   encodeJson (DependencyFilter deps) =
     filterWrapper "dependencies" (jsonSingletonObject' "modules" deps)
 
+newtype CompletionOptions = CompletionOptions {
+  maxResults :: Maybe Int,
+  groupReexports :: Boolean
+}
+
+instance encodeCompletionOptions :: EncodeJson CompletionOptions where
+  encodeJson (CompletionOptions { maxResults, groupReexports }) =
+   "maxResults" := encodeMaybeNull maxResults
+    ~> "groupReexports" := encodeJson groupReexports
+    ~> jsonEmptyObject
+
 data Command =
   Cwd
   | Ls ListType
   | Quit
   | Reset
   | Load (Array String) (Array String)
-  | Complete (Array Filter) (Maybe Matcher) (Maybe String)
+  | Complete (Array Filter) (Maybe Matcher) (Maybe String) CompletionOptions
   | Pursuit PursuitType String
   | Type String (Array Filter) (Maybe String)
   | AddClause String Boolean
@@ -105,11 +116,12 @@ instance encodeCommand :: EncodeJson Command where
       ~> "dependencies" := (encodeJson dependencies)
       ~> jsonEmptyObject
       )
-  encodeJson (Complete filters matcher currentModule) =
+  encodeJson (Complete filters matcher currentModule options) =
     commandWrapper "complete" (
       "filters" := (encodeJson filters)
       ~> "matcher" := (encodeMaybeNull matcher)
       ~> "currentModule" := (encodeMaybeNull currentModule)
+      ~> "options" := (encodeJson options)
       ~> jsonEmptyObject
       )
   encodeJson (Pursuit psType q) =
@@ -167,6 +179,7 @@ instance encodeImportCommand :: EncodeJson ImportCommand where
     ~> "identifier" := encodeJson mod
     ~> jsonEmptyObject
 
+
 type Result a = Either String a
 
 type GenCompletion a = {
@@ -185,7 +198,8 @@ newtype TypePosition = TypePosition {
 newtype TypeInfo = TypeInfo (GenCompletion (
   definedAt :: Maybe TypePosition,
   expandedType :: Maybe String,
-  documentation :: Maybe String
+  documentation :: Maybe String,
+  exportedFrom :: Array String
 ))
 newtype PursuitCompletion = PursuitCompletion {
   type' :: Maybe String,
@@ -194,6 +208,7 @@ newtype PursuitCompletion = PursuitCompletion {
   package :: String,
   text :: String
   }
+
 newtype ModuleList = ModuleList (Array String)
 newtype Message = Message String
 newtype ImportList = ImportList { moduleName :: Maybe String, imports :: Array Import }
@@ -248,7 +263,9 @@ instance decodeTypeInfo :: DecodeJson TypeInfo where
     definedAt <- o `getFieldMaybe` "definedAt"
     expandedType <- o `getFieldMaybe` "expandedType"
     documentation <- o `getFieldMaybe` "documentation"
-    pure (TypeInfo { identifier, type', module', definedAt, expandedType, documentation })
+    -- TODO: Handling both missing/incorrect exportedFrom. Remove this after 0.12
+    exportedFrom <- Right $ either (const []) id $ getField o "exportedFrom"
+    pure (TypeInfo { identifier, type', module', definedAt, expandedType, documentation, exportedFrom })
     where
     getFieldMaybe :: forall a. (DecodeJson a) => JObject -> String -> Either String (Maybe a)
     getFieldMaybe o f = Right $ either (const Nothing) Just $ getField o f

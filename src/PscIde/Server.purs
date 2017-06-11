@@ -8,7 +8,6 @@ import Control.Monad.Aff (attempt, Aff, delay, makeAff)
 import Control.Monad.Aff.AVar (AVAR)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
-import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION, catchException)
 import Control.Monad.Eff.Random (RANDOM, randomInt)
 import Control.Parallel.Class (parallel)
@@ -62,7 +61,7 @@ defaultServerArgs = {
 }
 
 -- | Start a psc-ide server instance
-startServer ∷ forall eff.  PscIdeServerArgs → Aff (cp ∷ CHILD_PROCESS, console ∷ CONSOLE, avar ∷ AVAR | eff) ServerStartResult
+startServer ∷ forall eff.  PscIdeServerArgs → Aff (cp ∷ CHILD_PROCESS, avar ∷ AVAR | eff) ServerStartResult
 startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirectory, watch, debug } = do
     cp <- liftEff (spawn exe (
       (if combinedExe then ["ide", "server"] else []) <>

@@ -58,14 +58,20 @@ reset port = sendCommand port Reset
 pursuitCompletion :: Int -> String -> Cmd (Array PursuitCompletion)
 pursuitCompletion port q = sendCommand port (Pursuit Ident q)
 
-complete :: Int -> Array Filter -> Maybe Matcher -> Maybe String -> Cmd (Array TypeInfo)
-complete port fs m mod = sendCommand port (Complete fs m mod)
+defaultCompletionOptions :: CompletionOptions
+defaultCompletionOptions = CompletionOptions {
+  maxResults: Nothing,
+  groupReexports: false
+}
+
+complete :: Int -> Array Filter -> Maybe Matcher -> Maybe String -> CompletionOptions -> Cmd (Array TypeInfo)
+complete port fs m mod opts = sendCommand port (Complete fs m mod opts)
 
 type':: Int -> String -> Array Filter -> Maybe String-> Cmd (Array TypeInfo)
 type' port s fs mod = sendCommand port (Type s fs mod)
 
-suggestTypos :: Int -> String -> Int -> Maybe String -> Cmd (Array TypeInfo)
-suggestTypos port q m mod = (_ <|> pure []) <$> complete port [] (Just (Distance q m)) mod
+suggestTypos :: Int -> String -> Int -> Maybe String -> CompletionOptions-> Cmd (Array TypeInfo)
+suggestTypos port q m mod opts = (_ <|> pure []) <$> complete port [] (Just (Distance q m)) mod opts
 
 addClause :: Int -> String -> Boolean -> Cmd (Array String)
 addClause port line annotations = sendCommand port (AddClause line annotations)
