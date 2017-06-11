@@ -71,7 +71,7 @@ newtype CompletionOptions = CompletionOptions {
 
 instance encodeCompletionOptions :: EncodeJson CompletionOptions where
   encodeJson (CompletionOptions { maxResults, groupReexports }) =
-   "maxResults" := encodeJson maxResults
+   "maxResults" := encodeMaybeNull maxResults
     ~> "groupReexports" := encodeJson groupReexports
     ~> jsonEmptyObject
 
