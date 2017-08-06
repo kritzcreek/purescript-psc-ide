@@ -83,8 +83,8 @@ caseSplit port line begin end annotations typ =
 implicitImport :: Int -> String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
 implicitImport port infile outfile filters mod = sendCommand port (ImportCmd infile outfile filters (AddImplicitImport mod))
 
-explicitImport :: Int -> String -> (Maybe String) -> (Array Filter) -> String -> Cmd (ImportResult)
-explicitImport port infile outfile filters ident = sendCommand port (ImportCmd infile outfile filters (AddImport ident))
+explicitImport :: Int -> String -> (Maybe String) -> (Array Filter) -> String -> Maybe String -> Cmd (ImportResult)
+explicitImport port infile outfile filters ident qualifier = sendCommand port (ImportCmd infile outfile filters (AddImport ident qualifier))
 
 rebuild :: Int -> String -> CmdR RebuildResult RebuildResult
 rebuild port file = sendCommandR port (RebuildCmd file)

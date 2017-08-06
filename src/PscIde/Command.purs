@@ -92,7 +92,7 @@ data Command =
 data ListType = LoadedModules | Imports String | AvailableModules
 
 type FileName = String
-data ImportCommand = AddImplicitImport String | AddImport String
+data ImportCommand = AddImplicitImport String | AddQualifiedImport String | AddImport String (Maybe String)
 
 commandWrapper :: forall a. (EncodeJson a) => String -> a -> Json
 commandWrapper s o =
@@ -174,9 +174,14 @@ instance encodeImportCommand :: EncodeJson ImportCommand where
     "importCommand" := "addImplicitImport"
     ~> "module" := encodeJson ident
     ~> jsonEmptyObject
-  encodeJson (AddImport mod) =
+  encodeJson (AddQualifiedImport qualifier) =
+    "importCommand" := "addQualifiedImport"
+    ~> "module" := encodeJson qualifier
+    ~> jsonEmptyObject
+  encodeJson (AddImport mod qualifier) =
     "importCommand" := "addImport"
     ~> "identifier" := encodeJson mod
+    ~> "qualifier" := encodeJson qualifier
     ~> jsonEmptyObject
 
 
