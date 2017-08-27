@@ -12,14 +12,16 @@ import Node.FS.Sync (exists) as FS
 getRoot :: forall eff'. NP.FilePath -> Eff (fs :: FS.FS | eff') (Maybe NP.FilePath)
 getRoot path =
   let parent = getParent path
-      bower = NP.concat [path, "bower.json"] in
+      bower = NP.concat [path, "bower.json"]
+      pscPackage = NP.concat [path, "psc-package.json"] in
   if path == "" || path == parent then
     pure Nothing
-  else if contains (Pattern "bower_components") path then
+  else if contains (Pattern "bower_components") path || contains (Pattern ".psc-package") path then
     getRoot parent
   else do
     hasBower <- FS.exists bower
-    if hasBower then pure $ Just path else getRoot parent
+    hasPscPackage <- FS.exists pscPackage
+    if hasBower || hasPscPackage then pure $ Just path else getRoot parent
 
   where
     getParent :: NP.FilePath -> NP.FilePath
