@@ -42,8 +42,19 @@ type PscIdeServerArgs = {
   directory :: Maybe String,
   outputDirectory :: Maybe String,
   watch :: Boolean,
-  debug :: Boolean
+  debug :: Boolean,
+  polling :: Boolean,
+  editorMode :: Boolean,
+  logLevel :: Maybe LogLevel
 }
+
+data LogLevel = All | None | Debug | Perf
+logParam :: LogLevel -> String
+logParam = case _ of
+  All -> "all"
+  None -> "none"
+  Debug -> "debug"
+  Perf -> "perf"
 
 defaultServerArgs :: PscIdeServerArgs
 defaultServerArgs = {
@@ -57,12 +68,15 @@ defaultServerArgs = {
   directory: Nothing,
   outputDirectory: Nothing,
   watch: true,
-  debug: false
+  debug: false,
+  polling: false,
+  editorMode: false,
+  logLevel: Nothing
 }
 
 -- | Start a psc-ide server instance
 startServer ∷ forall eff.  PscIdeServerArgs → Aff (cp ∷ CHILD_PROCESS, avar ∷ AVAR | eff) ServerStartResult
-startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirectory, watch, debug } = do
+startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirectory, watch, debug, polling, editorMode, logLevel } = do
     cp <- liftEff (spawn exe (
       (if combinedExe then ["ide", "server"] else []) <>
       (maybe [] (\p -> ["-p", show p]) port) <>
@@ -70,6 +84,9 @@ startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirec
       (maybe [] (\od -> ["--output-directory", od]) outputDirectory) <>
       (if watch then [] else ["--no-watch"]) <>
       (if debug then ["--debug"] else []) <>
+      (if polling then ["--polling"] else []) <>
+      (if editorMode then ["--editor-mode"] else []) <>
+      (maybe [] (\l -> ["--log-level", logParam l]) logLevel) <>
       source
       ) defaultSpawnOptions { cwd = cwd, stdio = stdio })
     let handleErr = makeAff \_ succ -> do

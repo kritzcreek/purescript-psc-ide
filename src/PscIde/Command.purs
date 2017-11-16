@@ -87,12 +87,12 @@ data Command =
   | AddClause String Boolean
   | CaseSplit String Int Int Boolean String
   | ImportCmd FileName (Maybe FileName) (Array Filter) ImportCommand
-  | RebuildCmd String
+  | RebuildCmd String (Maybe FileName)
 
 data ListType = LoadedModules | Imports String | AvailableModules
 
 type FileName = String
-data ImportCommand = AddImplicitImport String | AddImport String
+data ImportCommand = AddImplicitImport String | AddQualifiedImport String | AddImport String (Maybe String)
 
 commandWrapper :: forall a. (EncodeJson a) => String -> a -> Json
 commandWrapper s o =
@@ -160,9 +160,10 @@ instance encodeCommand :: EncodeJson Command where
       ~> "importCommand" := encodeJson cmd
       ~> jsonEmptyObject
       )
-  encodeJson (RebuildCmd file) =
+  encodeJson (RebuildCmd file actualFile) =
     commandWrapper "rebuild" (
       "file" := encodeJson file
+      ~> "actualFile" := encodeMaybeNull actualFile
       ~> jsonEmptyObject
       )
 
@@ -174,9 +175,14 @@ instance encodeImportCommand :: EncodeJson ImportCommand where
     "importCommand" := "addImplicitImport"
     ~> "module" := encodeJson ident
     ~> jsonEmptyObject
-  encodeJson (AddImport mod) =
+  encodeJson (AddQualifiedImport qualifier) =
+    "importCommand" := "addQualifiedImport"
+    ~> "module" := encodeJson qualifier
+    ~> jsonEmptyObject
+  encodeJson (AddImport mod qualifier) =
     "importCommand" := "addImport"
     ~> "identifier" := encodeJson mod
+    ~> "qualifier" := encodeJson qualifier
     ~> jsonEmptyObject
 
 
