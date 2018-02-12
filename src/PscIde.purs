@@ -86,5 +86,8 @@ implicitImport port infile outfile filters mod = sendCommand port (ImportCmd inf
 explicitImport :: Int -> String -> (Maybe String) -> (Array Filter) -> String -> Maybe String -> Cmd (ImportResult)
 explicitImport port infile outfile filters ident qualifier = sendCommand port (ImportCmd infile outfile filters (AddImport ident qualifier))
 
+qualifiedImport :: Int -> String -> (Maybe String) -> String -> String -> Cmd (ImportResult)
+qualifiedImport port infile outfile mod qualifier = sendCommand port (ImportCmd infile outfile [] (AddQualifiedImport mod qualifier))
+
 rebuild :: Int -> String -> Maybe FileName -> CmdR RebuildResult RebuildResult
 rebuild port file actualFile = sendCommandR port (RebuildCmd file actualFile)
