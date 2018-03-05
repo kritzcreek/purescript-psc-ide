@@ -10,4 +10,4 @@ install:
   - chmod a+x $HOME/purescript
   - npm install -g psc-package pulp
 script:
-  - psc-package update && pulp --psc-package build
+  - psc-package install && pulp --psc-package build
