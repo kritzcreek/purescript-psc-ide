@@ -235,8 +235,15 @@ newtype RebuildError =
   , filename :: Maybe String
   , errorCode :: String
   , message :: String
+  , pursIde :: Maybe PursIdeInfo
   }
 newtype RebuildResult = RebuildResult (Array RebuildError)
+
+newtype PursIdeInfo =
+  PursIdeInfo
+  { name :: String
+  , completions :: Array TypeInfo
+  }
 
 data ImportType = Implicit | Explicit (Array String) | Hiding (Array String)
 
@@ -353,9 +360,15 @@ instance decodeRebuildError :: DecodeJson RebuildError where
     position <- pure $ eitherToMaybe do
       p <- o .? "position"
       { line: _, column: _ } <$> p .? "startLine" <*> p .? "startColumn"
-    pure (RebuildError { errorCode, moduleName, filename, message, position})
+    pursIde <- pure $ eitherToMaybe do
+      pio <- o .? "pursIde"
+      name <- pio .? "name"
+      completions <- pio .? "completions"
+      pure $ PursIdeInfo { name, completions }
+    pure (RebuildError { errorCode, moduleName, filename, message, position, pursIde })
     where
-      eitherToMaybe = either (const Nothing) Just
+    eitherToMaybe :: forall a b. Either a b -> Maybe b
+    eitherToMaybe = either (const Nothing) Just
 
 instance decodeRebuildResult :: DecodeJson RebuildResult where
   decodeJson json = RebuildResult <$> (decodeJson json <|> (singleton <$> decodeJson json))
