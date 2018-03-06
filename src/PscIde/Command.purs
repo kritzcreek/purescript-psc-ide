@@ -226,17 +226,27 @@ newtype Import = Import
     qualifier  :: Maybe String
   }
 
-type Position = {line :: Int, column :: Int}
+type Position = { line :: Int, column :: Int }
+type RangePosition = { startLine :: Int, startColumn :: Int, endLine :: Int, endColumn :: Int }
 
 newtype RebuildError =
   RebuildError
-  { position :: Maybe Position
+  { position :: Maybe RangePosition
   , moduleName :: Maybe String
   , filename :: Maybe String
   , errorCode :: String
   , message :: String
+  , errorLink :: String
   , pursIde :: Maybe PursIdeInfo
+  , suggestion :: Maybe PscSuggestion
   }
+
+newtype PscSuggestion =
+  PscSuggestion
+  { replacement :: String
+  , replaceRange :: Maybe RangePosition
+  }
+
 newtype RebuildResult = RebuildResult (Array RebuildError)
 
 newtype PursIdeInfo =
@@ -355,17 +365,24 @@ instance decodeRebuildError :: DecodeJson RebuildError where
     o <- decodeJson json
     message <- o .? "message"
     errorCode <- o .? "errorCode"
+    errorLink <- o .? "errorLink"
     moduleName <- o .? "moduleName"
     filename <- o .? "filename"
     position <- pure $ eitherToMaybe do
       p <- o .? "position"
-      { line: _, column: _ } <$> p .? "startLine" <*> p .? "startColumn"
+      { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> p .? "startLine" <*> p .? "startColumn" <*> p .? "endLine" <*> p .? "endColumn"
     pursIde <- pure $ eitherToMaybe do
       pio <- o .? "pursIde"
       name <- pio .? "name"
       completions <- pio .? "completions"
       pure $ PursIdeInfo { name, completions }
-    pure (RebuildError { errorCode, moduleName, filename, message, position, pursIde })
+    suggestion <- pure $ eitherToMaybe do
+      so <- o .? "suggestion"
+      replacement <- so .? "replacement"
+      rr <- so .? "replaceRange"
+      replaceRange <- pure $ eitherToMaybe $ { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> rr .? "startLine" <*> rr .? "startColumn" <*> rr .? "endLine" <*> rr .? "endColumn"
+      pure $ PscSuggestion { replacement, replaceRange }
+    pure (RebuildError { errorCode, errorLink, moduleName, filename, message, position, pursIde, suggestion })
     where
     eitherToMaybe :: forall a b. Either a b -> Maybe b
     eitherToMaybe = either (const Nothing) Just
