@@ -1,6 +1,7 @@
 module PscIde.Command where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Data.Argonaut (JObject, getField)
 import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, Json, toString)
@@ -8,7 +9,7 @@ import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Argonaut.Parser (jsonParser)
 import Data.Array (singleton)
-import Data.Either (either, Either(..))
+import Data.Either (Either(..), either, hush)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String (joinWith)
 
@@ -368,24 +369,21 @@ instance decodeRebuildError :: DecodeJson RebuildError where
     errorLink <- o .? "errorLink"
     moduleName <- o .? "moduleName"
     filename <- o .? "filename"
-    position <- pure $ eitherToMaybe do
+    position <- pure $ hush do
       p <- o .? "position"
       { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> p .? "startLine" <*> p .? "startColumn" <*> p .? "endLine" <*> p .? "endColumn"
-    pursIde <- pure $ eitherToMaybe do
+    pursIde <- pure $ hush do
       pio <- o .? "pursIde"
       name <- pio .? "name"
       completions <- pio .? "completions"
       pure $ PursIdeInfo { name, completions }
-    suggestion <- pure $ eitherToMaybe do
+    suggestion <- pure $ hush do
       so <- o .? "suggestion"
       replacement <- so .? "replacement"
       rr <- so .? "replaceRange"
-      replaceRange <- pure $ eitherToMaybe $ { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> rr .? "startLine" <*> rr .? "startColumn" <*> rr .? "endLine" <*> rr .? "endColumn"
+      replaceRange <- pure $ hush $ { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> rr .? "startLine" <*> rr .? "startColumn" <*> rr .? "endLine" <*> rr .? "endColumn"
       pure $ PscSuggestion { replacement, replaceRange }
     pure (RebuildError { errorCode, errorLink, moduleName, filename, message, position, pursIde, suggestion })
-    where
-    eitherToMaybe :: forall a b. Either a b -> Maybe b
-    eitherToMaybe = either (const Nothing) Just
 
 instance decodeRebuildResult :: DecodeJson RebuildResult where
   decodeJson json = RebuildResult <$> (decodeJson json <|> (singleton <$> decodeJson json))
