@@ -1,6 +1,7 @@
 module PscIde.Command where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Data.Argonaut (JObject, getField)
 import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, Json, toString)
@@ -8,7 +9,7 @@ import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Argonaut.Parser (jsonParser)
 import Data.Array (singleton)
-import Data.Either (either, Either(..))
+import Data.Either (Either(..), either, hush)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String (joinWith)
 
@@ -226,17 +227,34 @@ newtype Import = Import
     qualifier  :: Maybe String
   }
 
-type Position = {line :: Int, column :: Int}
+type Position = { line :: Int, column :: Int }
+type RangePosition = { startLine :: Int, startColumn :: Int, endLine :: Int, endColumn :: Int }
 
 newtype RebuildError =
   RebuildError
-  { position :: Maybe Position
+  { position :: Maybe RangePosition
   , moduleName :: Maybe String
   , filename :: Maybe String
   , errorCode :: String
   , message :: String
+  , errorLink :: String
+  , pursIde :: Maybe PursIdeInfo
+  , suggestion :: Maybe PscSuggestion
   }
+
+newtype PscSuggestion =
+  PscSuggestion
+  { replacement :: String
+  , replaceRange :: Maybe RangePosition
+  }
+
 newtype RebuildResult = RebuildResult (Array RebuildError)
+
+newtype PursIdeInfo =
+  PursIdeInfo
+  { name :: String
+  , completions :: Array TypeInfo
+  }
 
 data ImportType = Implicit | Explicit (Array String) | Hiding (Array String)
 
@@ -348,14 +366,24 @@ instance decodeRebuildError :: DecodeJson RebuildError where
     o <- decodeJson json
     message <- o .? "message"
     errorCode <- o .? "errorCode"
+    errorLink <- o .? "errorLink"
     moduleName <- o .? "moduleName"
     filename <- o .? "filename"
-    position <- pure $ eitherToMaybe do
+    position <- pure $ hush do
       p <- o .? "position"
-      { line: _, column: _ } <$> p .? "startLine" <*> p .? "startColumn"
-    pure (RebuildError { errorCode, moduleName, filename, message, position})
-    where
-      eitherToMaybe = either (const Nothing) Just
+      { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> p .? "startLine" <*> p .? "startColumn" <*> p .? "endLine" <*> p .? "endColumn"
+    pursIde <- pure $ hush do
+      pio <- o .? "pursIde"
+      name <- pio .? "name"
+      completions <- pio .? "completions"
+      pure $ PursIdeInfo { name, completions }
+    suggestion <- pure $ hush do
+      so <- o .? "suggestion"
+      replacement <- so .? "replacement"
+      rr <- so .? "replaceRange"
+      replaceRange <- pure $ hush $ { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> rr .? "startLine" <*> rr .? "startColumn" <*> rr .? "endLine" <*> rr .? "endColumn"
+      pure $ PscSuggestion { replacement, replaceRange }
+    pure (RebuildError { errorCode, errorLink, moduleName, filename, message, position, pursIde, suggestion })
 
 instance decodeRebuildResult :: DecodeJson RebuildResult where
   decodeJson json = RebuildResult <$> (decodeJson json <|> (singleton <$> decodeJson json))
