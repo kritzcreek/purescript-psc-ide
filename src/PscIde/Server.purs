@@ -90,7 +90,13 @@ startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirec
       source
       ) defaultSpawnOptions { cwd = cwd, stdio = stdio })
     let handleErr = makeAff \_ succ -> do
-                      onError cp (\_ -> succ $ StartError "psc-ide-server error")
+                      onError cp (\{ code, errno, syscall } ->
+                        succ $ StartError $
+                          "psc-ide-server error:" <>
+                          "{ code: " <> code <>
+                          ", errno: " <> errno <>
+                          ", syscall: " <> syscall <>
+                          " }")
                       onClose cp (\exit -> case exit of
                                      (Normally 0) -> succ Closed
                                      (Normally n) -> succ $ StartError $ "Error code returned: "<> show n
