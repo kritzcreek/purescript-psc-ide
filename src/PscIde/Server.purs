@@ -1,29 +1,29 @@
 module PscIde.Server where
 
 import Prelude
-import Node.Buffer as Buffer
-import Node.Path as Path
+
 import Control.Alt ((<|>))
-import Control.Monad.Aff (attempt, Aff, delay, makeAff)
+import Control.Monad.Aff (Aff, attempt, delay, makeAff, nonCanceler, sequential)
 import Control.Monad.Aff.AVar (AVAR)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (EXCEPTION, catchException)
 import Control.Monad.Eff.Random (RANDOM, randomInt)
 import Control.Parallel.Class (parallel)
-import Data.Either (either)
+import Data.Either (Either(..), either)
 import Data.Int (fromNumber)
 import Data.Maybe (Maybe(Just, Nothing), maybe)
-import Data.Newtype (unwrap)
 import Data.StrMap (StrMap)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
 import Global (readInt)
 import Node.Buffer (BUFFER)
+import Node.Buffer as Buffer
 import Node.ChildProcess (CHILD_PROCESS, ChildProcess, StdIOBehaviour, Exit(Normally), onClose, onError, defaultSpawnOptions, spawn, defaultExecOptions, execFile, pipe)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS (FS)
 import Node.FS.Sync (readTextFile, unlink, writeTextFile)
+import Node.Path as Path
 import Node.Which (which')
 import PscIde (NET, quit)
 
@@ -89,20 +89,20 @@ startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirec
       (maybe [] (\l -> ["--log-level", logParam l]) logLevel) <>
       source
       ) defaultSpawnOptions { cwd = cwd, stdio = stdio })
-    let handleErr = makeAff \_ succ -> do
+    let handleErr = makeAff \ cb -> nonCanceler <$ do
                       onError cp (\{ code, errno, syscall } ->
-                        succ $ StartError $
+                        cb $ Right $ StartError $
                           "psc-ide-server error:" <>
                           "{ code: " <> code <>
                           ", errno: " <> errno <>
                           ", syscall: " <> syscall <>
                           " }")
                       onClose cp (\exit -> case exit of
-                                     (Normally 0) -> succ Closed
-                                     (Normally n) -> succ $ StartError $ "Error code returned: "<> show n
-                                     _ -> succ $ StartError "Other close error")
+                                     (Normally 0) -> cb $ Right Closed
+                                     (Normally n) -> cb $ Right $ StartError $ "Error code returned: "<> show n
+                                     _ -> cb $ Right $ StartError "Other close error")
 
-    unwrap (parallel handleErr <|> parallel (delay (Milliseconds 100.0) $> Started cp))
+    sequential (parallel handleErr <|> parallel (delay (Milliseconds 100.0) $> Started cp))
 
 -- | Construct path to the port file identifying the psc-ide-server port
 portFilePath :: String -> String
@@ -142,6 +142,6 @@ findBins' { path, pathExt, env } executable = do
 
   where
   getVersion :: forall eff'. String -> Aff (buffer :: BUFFER, cp :: CHILD_PROCESS | eff') String
-  getVersion bin = makeAff $ \err succ ->
+  getVersion bin = makeAff $ \cb -> nonCanceler <$
     execFile bin ["--version"] (defaultExecOptions { env = env }) \({error, stdout}) -> do
-      maybe (Buffer.readString UTF8 0 100 stdout >>= succ) err error
+      maybe (Right <$> Buffer.readString UTF8 0 100 stdout >>= cb) (cb <<< Left) error

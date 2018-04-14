@@ -1,5 +1,5 @@
 {
-    "set": "psc-0.11.6-11072017",
+    "set": "psc-0.11.7",
     "depends": [
         "console",
         "argonaut",
