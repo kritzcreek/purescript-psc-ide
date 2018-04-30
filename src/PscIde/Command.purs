@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Argonaut (JObject, getField)
-import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, Json, toString)
+import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, fromString, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Argonaut.Parser (jsonParser)
@@ -89,8 +89,10 @@ data Command =
   | CaseSplit String Int Int Boolean String
   | ImportCmd FileName (Maybe FileName) (Array Filter) ImportCommand
   | RebuildCmd String (Maybe FileName)
+  | Usages String Namespace String
 
 data ListType = LoadedModules | Imports String | AvailableModules
+data Namespace = NSValue | NSType | NSKind 
 
 type FileName = String
 data ImportCommand = AddImplicitImport String | AddQualifiedImport String String | AddImport String (Maybe String)
@@ -167,6 +169,13 @@ instance encodeCommand :: EncodeJson Command where
       ~> "actualFile" := encodeMaybeNull actualFile
       ~> jsonEmptyObject
       )
+  encodeJson (Usages mod ns ident) = 
+    commandWrapper "usages" (
+      "module" := encodeJson mod
+      ~> "namespace" := encodeJson ns
+      ~> "identifier" := encodeJson ident
+      ~> jsonEmptyObject
+    )
 
 encodeMaybeNull :: forall a. (EncodeJson a) => Maybe a -> Json
 encodeMaybeNull = maybe jsonNull encodeJson
@@ -187,6 +196,10 @@ instance encodeImportCommand :: EncodeJson ImportCommand where
     ~> "qualifier" := encodeJson qualifier
     ~> jsonEmptyObject
 
+instance encodeNamespace :: EncodeJson Namespace where
+  encodeJson NSValue = fromString "value"
+  encodeJson NSType = fromString "type"
+  encodeJson NSKind = fromString "kind"
 
 type Result a = Either String a
 

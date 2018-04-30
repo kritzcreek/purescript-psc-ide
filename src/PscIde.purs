@@ -92,3 +92,6 @@ qualifiedImport port infile outfile mod qualifier = sendCommand port (ImportCmd 
 
 rebuild :: Int -> String -> Maybe FileName -> CmdR RebuildResult RebuildResult
 rebuild port file actualFile = sendCommandR port (RebuildCmd file actualFile)
+
+usages :: Int -> String -> Namespace -> String -> Cmd (Array TypePosition)
+usages port file ns ident = sendCommand port (Usages file ns ident)
