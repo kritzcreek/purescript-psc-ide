@@ -3,7 +3,7 @@ module PscIde.Command where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Argonaut (JObject, getField)
+import Data.Argonaut (getField)
 import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, fromString, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
@@ -12,6 +12,7 @@ import Data.Array (singleton)
 import Data.Either (Either(..), either, hush)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String (joinWith)
+import Foreign.Object (Object)
 
 data PursuitType = Package | Ident
 
@@ -302,10 +303,10 @@ instance decodeTypeInfo :: DecodeJson TypeInfo where
     expandedType <- o `getFieldMaybe` "expandedType"
     documentation <- o `getFieldMaybe` "documentation"
     -- TODO: Handling both missing/incorrect exportedFrom. Remove this after 0.12
-    exportedFrom <- Right $ either (const []) id $ getField o "exportedFrom"
+    exportedFrom <- Right $ either (const []) identity $ getField o "exportedFrom"
     pure (TypeInfo { identifier, type', module', definedAt, expandedType, documentation, exportedFrom })
     where
-    getFieldMaybe :: forall a. (DecodeJson a) => JObject -> String -> Either String (Maybe a)
+    getFieldMaybe :: forall a. (DecodeJson a) => Object Json -> String -> Either String (Maybe a)
     getFieldMaybe o f = Right $ either (const Nothing) Just $ getField o f
 
 instance decodeTypePosition :: DecodeJson TypePosition where
