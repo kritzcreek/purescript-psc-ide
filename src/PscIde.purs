@@ -4,36 +4,33 @@ import PscIde.Command
 
 import Control.Alt ((<$), (<|>))
 import Control.Bind (join)
-import Control.Monad.Aff (Aff, makeAff, nonCanceler)
-import Control.Monad.Eff (Eff, kind Effect)
-import Control.Monad.Eff.Exception (Error)
-import Data.Argonaut (class DecodeJson, class EncodeJson, encodeJson)
+import Data.Argonaut (class DecodeJson, class EncodeJson, encodeJson, stringify)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Prelude (Unit, pure, show, (<$>), (>>>))
+import Effect (Effect)
+import Effect.Aff (Aff, makeAff, nonCanceler)
+import Effect.Exception (Error)
+import Prelude (Unit, pure, (<$>), (>>>))
 
-foreign import data NET :: Effect
-
-foreign import send
-  :: forall eff.
+foreign import send ::
   String  -- ^ Command
   -> Int -- ^ Port
-  -> (String -> Eff (net :: NET | eff) Unit)  -- ^ Callback
-  -> (Error -> Eff (net :: NET | eff) Unit)  -- ^ Error Callback
-  -> Eff (net :: NET | eff) Unit
+  -> (String -> Effect Unit)  -- ^ Callback
+  -> (Error -> Effect Unit)  -- ^ Error Callback
+  -> Effect Unit
 
-type Cmd a = forall eff. Aff (net :: NET | eff) (Result a)
-type CmdR a b = forall eff. Aff (net :: NET | eff) (Result (Either a b))
+type Cmd a = Aff (Result a)
+type CmdR a b = Aff (Result (Either a b))
 
 sendCommandR :: forall i oe o. EncodeJson i => DecodeJson oe => DecodeJson o => Int -> i -> CmdR oe o
 sendCommandR port command =
   makeAff \cb -> nonCanceler <$
-            send (show (encodeJson command)) port (unwrapResponse >>> Right >>> cb) (Left >>> cb)
+            send (stringify (encodeJson command)) port (unwrapResponse >>> Right >>> cb) (Left >>> cb)
 
 sendCommand :: forall i o. EncodeJson i => DecodeJson o => Int -> i -> Cmd o
 sendCommand port command =
   makeAff \cb -> nonCanceler <$
-            send (show (encodeJson command)) port (unwrapResponse >>> join >>> Right >>> cb) (Left >>> cb)
+            send (stringify (encodeJson command)) port (unwrapResponse >>> join >>> Right >>> cb) (Left >>> cb)
 
 cwd :: Int -> Cmd Message
 cwd port = sendCommand port Cwd
