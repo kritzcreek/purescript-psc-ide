@@ -11,15 +11,15 @@
     "output"
   ],
   "dependencies": {
-    "purescript-console": "^3.0.0",
-    "purescript-argonaut": "^3.1.0",
-    "purescript-arrays": "^4.3.0",
-    "purescript-maybe": "^3.1.0",
-    "purescript-aff": "^4.1.0",
-    "purescript-node-fs": "^4.0.1",
-    "purescript-node-child-process": "^4.0.0",
-    "purescript-parallel": "^3.3.1",
-    "purescript-random": "^3.0.0"
+    "purescript-console": "^4.1.0",
+    "purescript-argonaut": "^4.0.1",
+    "purescript-arrays": "^5.0.0",
+    "purescript-maybe": "^4.0.0",
+    "purescript-aff": "^5.0.2",
+    "purescript-node-fs": "^5.0.0",
+    "purescript-node-child-process": "^5.0.0",
+    "purescript-parallel": "^4.0.0",
+    "purescript-random": "^4.0.0"
   },
   "repository": {
     "type": "git",
