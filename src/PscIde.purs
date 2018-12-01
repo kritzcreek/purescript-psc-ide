@@ -87,8 +87,8 @@ explicitImport port infile outfile filters ident qualifier = sendCommand port (I
 qualifiedImport :: Int -> String -> (Maybe String) -> String -> String -> Cmd (ImportResult)
 qualifiedImport port infile outfile mod qualifier = sendCommand port (ImportCmd infile outfile [] (AddQualifiedImport mod qualifier))
 
-rebuild :: Int -> String -> Maybe FileName -> CmdR RebuildResult RebuildResult
-rebuild port file actualFile = sendCommandR port (RebuildCmd file actualFile)
+rebuild :: Int -> String -> Maybe FileName -> Maybe (Array String) -> CmdR RebuildResult RebuildResult
+rebuild port file actualFile targets = sendCommandR port (RebuildCmd file actualFile targets)
 
 usages :: Int -> String -> Namespace -> String -> Cmd (Array TypePosition)
 usages port file ns ident = sendCommand port (Usages file ns ident)

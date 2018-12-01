@@ -89,7 +89,7 @@ data Command =
   | AddClause String Boolean
   | CaseSplit String Int Int Boolean String
   | ImportCmd FileName (Maybe FileName) (Array Filter) ImportCommand
-  | RebuildCmd String (Maybe FileName)
+  | RebuildCmd String (Maybe FileName) (Maybe (Array String))
   | Usages String Namespace String
 
 data ListType = LoadedModules | Imports String | AvailableModules
@@ -164,10 +164,11 @@ instance encodeCommand :: EncodeJson Command where
       ~> "importCommand" := encodeJson cmd
       ~> jsonEmptyObject
       )
-  encodeJson (RebuildCmd file actualFile) =
+  encodeJson (RebuildCmd file actualFile codegen) =
     commandWrapper "rebuild" (
       "file" := encodeJson file
       ~> "actualFile" := encodeMaybeNull actualFile
+      ~> "codegen" := encodeMaybeNull codegen
       ~> jsonEmptyObject
       )
   encodeJson (Usages mod ns ident) = 
