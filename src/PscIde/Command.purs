@@ -89,11 +89,12 @@ data Command =
   | AddClause String Boolean
   | CaseSplit String Int Int Boolean String
   | ImportCmd FileName (Maybe FileName) (Array Filter) ImportCommand
-  | RebuildCmd String (Maybe FileName) (Maybe (Array String))
+  | RebuildCmd String (Maybe FileName) (Maybe (Array CodegenTarget))
   | Usages String Namespace String
 
 data ListType = LoadedModules | Imports String | AvailableModules
 data Namespace = NSValue | NSType | NSKind 
+data CodegenTarget =  JS | JSSourceMap | CoreFn | Other String
 
 type FileName = String
 data ImportCommand = AddImplicitImport String | AddQualifiedImport String String | AddImport String (Maybe String)
@@ -202,6 +203,12 @@ instance encodeNamespace :: EncodeJson Namespace where
   encodeJson NSValue = fromString "value"
   encodeJson NSType = fromString "type"
   encodeJson NSKind = fromString "kind"
+
+instance encodeCodegenTarget :: EncodeJson CodegenTarget where
+  encodeJson JS = fromString "js"
+  encodeJson JSSourceMap = fromString "sourcemaps"
+  encodeJson CoreFn = fromString "corefn"
+  encodeJson (Other s) = fromString s
 
 type Result a = Either String a
 
