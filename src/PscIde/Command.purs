@@ -5,7 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut (getField)
 import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, fromString, Json, toString)
-import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.?))
+import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.:))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Argonaut.Parser (jsonParser)
 import Data.Array (singleton)
@@ -286,13 +286,13 @@ unwrapResponse :: forall a b. DecodeJson a => DecodeJson b => String -> Either S
 unwrapResponse s = do
   json <- jsonParser s
   o <- decodeJson json
-  resultType <- o .? "resultType"
+  resultType <- o .: "resultType"
   case resultType of
     "success" -> do
-      result <- o .? "result"
+      result <- o .: "result"
       pure (Right result)
     _ -> do
-      result <- o .? "result"
+      result <- o .: "result"
       pure (Left result)
 
 instance decodeMessage :: DecodeJson Message where
@@ -304,9 +304,9 @@ instance decodeModuleList :: DecodeJson ModuleList where
 instance decodeTypeInfo :: DecodeJson TypeInfo where
   decodeJson json = do
     o <- decodeJson json
-    identifier <- o .? "identifier"
-    type' <- o .? "type"
-    module' <- o .? "module"
+    identifier <- o .: "identifier"
+    type' <- o .: "type"
+    module' <- o .: "module"
     definedAt <- o `getFieldMaybe` "definedAt"
     expandedType <- o `getFieldMaybe` "expandedType"
     documentation <- o `getFieldMaybe` "documentation"
@@ -320,9 +320,9 @@ instance decodeTypeInfo :: DecodeJson TypeInfo where
 instance decodeTypePosition :: DecodeJson TypePosition where
   decodeJson json = do
     o <- decodeJson json
-    name <- o .? "name"
-    start <- o .? "start"
-    end <- o .? "end"
+    name <- o .: "name"
+    start <- o .: "start"
+    end <- o .: "end"
     case start, end of
       [sl, sc], [el, ec] ->
         Right (TypePosition { name, start: { line: sl, column: sc }, end: { line: el, column: ec } })
@@ -331,11 +331,11 @@ instance decodeTypePosition :: DecodeJson TypePosition where
 instance decodePursuitCompletion :: DecodeJson PursuitCompletion where
   decodeJson json = do
     o <- decodeJson json
-    identifier <- o .? "ident"
-    type' <- o .? "type"
-    module' <- o .? "module"
-    package <- o .? "package"
-    text <- o .? "text"
+    identifier <- o .: "ident"
+    type' <- o .: "type"
+    module' <- o .: "module"
+    package <- o .: "package"
+    text <- o .: "text"
     pure (PursuitCompletion {
       identifier: identifier,
       type': type',
@@ -349,9 +349,9 @@ instance decodeImportList :: DecodeJson ImportList where
     where
       decodeObject = do
         o <- decodeJson json
-        moduleNameField <- o .? "moduleName"
+        moduleNameField <- o .: "moduleName"
         moduleName <- decodeModuleNameBug moduleNameField <|> decodeJson moduleNameField
-        imports <- o .? "imports"
+        imports <- o .: "imports"
         pure (ImportList { moduleName: Just moduleName, imports })
       -- TODO: Working around a bug where module Foo.Bar is jsonified as ["Foo", "Bar"] instead of "Foo.Bar"
       decodeModuleNameBug moduleName = joinWith "." <$> decodeJson moduleName
@@ -362,17 +362,17 @@ instance decodeImportList :: DecodeJson ImportList where
 instance decodeImport :: DecodeJson Import where
   decodeJson json = do
     o <- decodeJson json
-    moduleName <- o .? "module"
-    importType <- o .? "importType"
-    q <- (Just <$> o .? "qualifier") <|> pure Nothing
+    moduleName <- o .: "module"
+    importType <- o .: "importType"
+    q <- (Just <$> o .: "qualifier") <|> pure Nothing
     case importType of
       "implicit" -> do
         pure $ Import {moduleName: moduleName, importType: Implicit, qualifier: q}
       "explicit" -> do
-        identifiers <- o .? "identifiers"
+        identifiers <- o .: "identifiers"
         pure $ Import {moduleName: moduleName, importType: Explicit identifiers, qualifier: q}
       "hiding"   -> do
-        identifiers <- o .? "identifiers"
+        identifiers <- o .: "identifiers"
         pure $ Import {moduleName: moduleName, importType: Hiding identifiers, qualifier: q}
       _ -> Left "unknown importType"
 
@@ -386,24 +386,24 @@ instance decodeImportResult :: DecodeJson ImportResult where
 instance decodeRebuildError :: DecodeJson RebuildError where
   decodeJson json = do
     o <- decodeJson json
-    message <- o .? "message"
-    errorCode <- o .? "errorCode"
-    errorLink <- o .? "errorLink"
-    moduleName <- o .? "moduleName"
-    filename <- o .? "filename"
+    message <- o .: "message"
+    errorCode <- o .: "errorCode"
+    errorLink <- o .: "errorLink"
+    moduleName <- o .: "moduleName"
+    filename <- o .: "filename"
     position <- pure $ hush do
-      p <- o .? "position"
-      { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> p .? "startLine" <*> p .? "startColumn" <*> p .? "endLine" <*> p .? "endColumn"
+      p <- o .: "position"
+      { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> p .: "startLine" <*> p .: "startColumn" <*> p .: "endLine" <*> p .: "endColumn"
     pursIde <- pure $ hush do
-      pio <- o .? "pursIde"
-      name <- pio .? "name"
-      completions <- pio .? "completions"
+      pio <- o .: "pursIde"
+      name <- pio .: "name"
+      completions <- pio .: "completions"
       pure $ PursIdeInfo { name, completions }
     suggestion <- pure $ hush do
-      so <- o .? "suggestion"
-      replacement <- so .? "replacement"
-      rr <- so .? "replaceRange"
-      replaceRange <- pure $ hush $ { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> rr .? "startLine" <*> rr .? "startColumn" <*> rr .? "endLine" <*> rr .? "endColumn"
+      so <- o .: "suggestion"
+      replacement <- so .: "replacement"
+      rr <- so .: "replaceRange"
+      replaceRange <- pure $ hush $ { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> rr .: "startLine" <*> rr .: "startColumn" <*> rr .: "endLine" <*> rr .: "endColumn"
       pure $ PscSuggestion { replacement, replaceRange }
     pure (RebuildError { errorCode, errorLink, moduleName, filename, message, position, pursIde, suggestion })
 
