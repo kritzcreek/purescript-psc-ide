@@ -12,5 +12,11 @@
   "bugs": {
     "url": "https://github.com/kRITZCREEK/purescript-psc-ide/issues"
   },
-  "homepage": "https://github.com/kRITZCREEK/purescript-psc-ide#readme"
+  "homepage": "https://github.com/kRITZCREEK/purescript-psc-ide#readme",
+  "scripts": {
+    "compile:bower": "purs compile \"src/**/*.purs\" \"bower_components/purescript-*/src/**/*.purs\""
+  },
+  "devDependencies": {
+    "purescript": "^0.13.0"
+  }
 }
