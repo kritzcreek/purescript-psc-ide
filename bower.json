@@ -12,7 +12,7 @@
   ],
   "dependencies": {
     "purescript-console": "^4.1.0",
-    "purescript-argonaut": "^6.0.0",
+    "purescript-argonaut": "^7.0.0",
     "purescript-arrays": "^5.0.0",
     "purescript-maybe": "^4.0.0",
     "purescript-aff": "^5.0.2",
