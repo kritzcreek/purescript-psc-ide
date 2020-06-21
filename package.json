@@ -17,6 +17,6 @@
     "compile:bower": "purs compile \"src/**/*.purs\" \"bower_components/purescript-*/src/**/*.purs\""
   },
   "devDependencies": {
-    "purescript": "^0.13.0"
+    "purescript": "^0.13.8"
   }
 }
