@@ -1,6 +1,7 @@
 { name = "psc-ide"
 , dependencies =
   [ "aff"
+  , "argonaut"
   , "arrays"
   , "console"
   , "effect"
