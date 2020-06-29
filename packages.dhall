@@ -3,7 +3,7 @@ let upstream =
 
 let overrides = 
       { argonaut = upstream.argonaut // { version = "v7.0.0" }
-      , argonaut-codecs = upstream.argonaut-codecs // { version = "v7.0.0" }
+      , argonaut-codecs = upstream.argonaut-codecs // { version = "v7.0.0", dependencies = upstream.argonaut-codecs.dependencies # [ "generics-rep" ] }
       , argonaut-traversals = upstream.argonaut-traversals // { version = "v8.0.0" }
       }
 
