@@ -3,12 +3,12 @@ module PscIde.Command where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Argonaut (getField)
+import Data.Argonaut (JsonDecodeError(..), getField, parseJson, printJsonDecodeError)
 import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, fromString, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.:))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
-import Data.Argonaut.Parser (jsonParser)
 import Data.Array (singleton)
+import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, hush)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String (joinWith)
@@ -283,8 +283,8 @@ data ImportType = Implicit | Explicit (Array String) | Hiding (Array String)
 data ImportResult = SuccessFile Message | SuccessText (Array String) | MultipleResults (Array TypeInfo)
 
 unwrapResponse :: forall a b. DecodeJson a => DecodeJson b => String -> Either String (Either a b)
-unwrapResponse s = do
-  json <- jsonParser s
+unwrapResponse s = lmap printJsonDecodeError do
+  json <- parseJson s
   o <- decodeJson json
   resultType <- o .: "resultType"
   case resultType of
@@ -296,7 +296,7 @@ unwrapResponse s = do
       pure (Left result)
 
 instance decodeMessage :: DecodeJson Message where
-  decodeJson json = maybe (Left "Message not string") (Right <<< Message) $ toString json
+  decodeJson json = maybe (Left (TypeMismatch "String")) (Right <<< Message) $ toString json
 
 instance decodeModuleList :: DecodeJson ModuleList where
   decodeJson json = ModuleList <$> decodeJson json
@@ -314,7 +314,7 @@ instance decodeTypeInfo :: DecodeJson TypeInfo where
     exportedFrom <- Right $ either (const []) identity $ getField o "exportedFrom"
     pure (TypeInfo { identifier, type', module', definedAt, expandedType, documentation, exportedFrom })
     where
-    getFieldMaybe :: forall a. (DecodeJson a) => Object Json -> String -> Either String (Maybe a)
+    getFieldMaybe :: forall a. (DecodeJson a) => Object Json -> String -> Either JsonDecodeError (Maybe a)
     getFieldMaybe o f = Right $ either (const Nothing) Just $ getField o f
 
 instance decodeTypePosition :: DecodeJson TypePosition where
@@ -326,7 +326,7 @@ instance decodeTypePosition :: DecodeJson TypePosition where
     case start, end of
       [sl, sc], [el, ec] ->
         Right (TypePosition { name, start: { line: sl, column: sc }, end: { line: el, column: ec } })
-      _, _ -> Left "Start/end should be arrays"
+      _, _ -> Left (TypeMismatch "Array")
 
 instance decodePursuitCompletion :: DecodeJson PursuitCompletion where
   decodeJson json = do
@@ -374,14 +374,14 @@ instance decodeImport :: DecodeJson Import where
       "hiding"   -> do
         identifiers <- o .: "identifiers"
         pure $ Import {moduleName: moduleName, importType: Hiding identifiers, qualifier: q}
-      _ -> Left "unknown importType"
+      v -> Left (TypeMismatch "ImportType")
 
 instance decodeImportResult :: DecodeJson ImportResult where
   decodeJson json = do
     (SuccessText <$> decodeJson json)
     <|> (SuccessFile <$> decodeJson json)
     <|> (MultipleResults <$> decodeJson json)
-    <|> (Left "Couldn't parse as ImportResult")
+    <|> (Left (TypeMismatch "ImportResult"))
 
 instance decodeRebuildError :: DecodeJson RebuildError where
   decodeJson json = do
