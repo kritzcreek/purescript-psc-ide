@@ -105,6 +105,39 @@ data CodegenTarget =  JS | JSSourceMap | CoreFn | Other String
 type FileName = String
 data ImportCommand = AddImplicitImport String | AddQualifiedImport String String | AddImport String (Maybe String)
 
+data DeclarationType = 
+  DeclValue
+  | DeclType
+  | DeclTypeSynonym
+  | DeclDataConstructor
+  | DeclTypeClass
+  | DeclValueOperator
+  | DeclTypeOperator
+  | DeclModule
+
+declarationTypeFromString :: String -> Maybe DeclarationType
+declarationTypeFromString = case _ of 
+  "value" -> Just DeclValue
+  "type" -> Just DeclType
+  "typeSynonym" -> Just DeclTypeSynonym
+  "dataConstructor" -> Just DeclDataConstructor
+  "typeClass" -> Just DeclTypeClass
+  "valueOperator" -> Just DeclValueOperator
+  "typeOperator" -> Just DeclTypeOperator
+  "module" -> Just DeclModule
+  _ -> Nothing
+
+declarationTypeToString :: DeclarationType -> String
+declarationTypeToString = case _ of 
+  DeclValue -> "value" 
+  DeclType -> "type" 
+  DeclTypeSynonym -> "typeSynonym" 
+  DeclDataConstructor -> "dataConstructor" 
+  DeclTypeClass -> "typeClass" 
+  DeclValueOperator -> "valueOperator" 
+  DeclTypeOperator -> "typeOperator" 
+  DeclModule -> "module" 
+
 commandWrapper :: forall a. (EncodeJson a) => String -> a -> Json
 commandWrapper s o =
   "command" := s
@@ -235,8 +268,10 @@ newtype TypeInfo = TypeInfo (GenCompletion (
   definedAt :: Maybe TypePosition,
   expandedType :: Maybe String,
   documentation :: Maybe String,
-  exportedFrom :: Array String
+  exportedFrom :: Array String,
+  declarationType :: Maybe DeclarationType
 ))
+
 newtype PursuitCompletion = PursuitCompletion {
   type' :: Maybe String,
   identifier :: String,
@@ -316,9 +351,19 @@ instance decodeTypeInfo :: DecodeJson TypeInfo where
     definedAt <- o `getFieldMaybe` "definedAt"
     expandedType <- o `getFieldMaybe` "expandedType"
     documentation <- o `getFieldMaybe` "documentation"
+    declarationTypeStr <- o `getFieldMaybe` "declarationType"
     -- TODO: Handling both missing/incorrect exportedFrom. Remove this after 0.12
     exportedFrom <- Right $ either (const []) identity $ getField o "exportedFrom"
-    pure (TypeInfo { identifier, type', module', definedAt, expandedType, documentation, exportedFrom })
+    pure (TypeInfo 
+      { identifier
+      , type'
+      , module'
+      , definedAt
+      , expandedType
+      , documentation
+      , exportedFrom
+      , declarationType: declarationTypeFromString =<< declarationTypeStr
+      })
     where
     getFieldMaybe :: forall a. (DecodeJson a) => Object Json -> String -> Either JsonDecodeError (Maybe a)
     getFieldMaybe o f = Right $ either (const Nothing) Just $ getField o f
