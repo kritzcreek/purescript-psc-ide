@@ -119,11 +119,11 @@ declarationTypeFromString :: String -> Maybe DeclarationType
 declarationTypeFromString = case _ of 
   "value" -> Just DeclValue
   "type" -> Just DeclType
-  "typeSynonym" -> Just DeclTypeSynonym
-  "dataConstructor" -> Just DeclDataConstructor
-  "typeClass" -> Just DeclTypeClass
-  "valueOperator" -> Just DeclValueOperator
-  "typeOperator" -> Just DeclTypeOperator
+  "synonym" -> Just DeclTypeSynonym
+  "dataconstructor" -> Just DeclDataConstructor
+  "typeclass" -> Just DeclTypeClass
+  "valueoperator" -> Just DeclValueOperator
+  "typeoperator" -> Just DeclTypeOperator
   "module" -> Just DeclModule
   _ -> Nothing
 
@@ -131,11 +131,11 @@ declarationTypeToString :: DeclarationType -> String
 declarationTypeToString = case _ of 
   DeclValue -> "value" 
   DeclType -> "type" 
-  DeclTypeSynonym -> "typeSynonym" 
-  DeclDataConstructor -> "dataConstructor" 
-  DeclTypeClass -> "typeClass" 
-  DeclValueOperator -> "valueOperator" 
-  DeclTypeOperator -> "typeOperator" 
+  DeclTypeSynonym -> "synonym" 
+  DeclDataConstructor -> "dataconstructor" 
+  DeclTypeClass -> "typeclass" 
+  DeclValueOperator -> "valueoperator" 
+  DeclTypeOperator -> "typeoperator" 
   DeclModule -> "module" 
 
 commandWrapper :: forall a. (EncodeJson a) => String -> a -> Json
