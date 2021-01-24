@@ -47,7 +47,7 @@ data Filter =
   | ModuleFilter (Array String)
   | DependencyFilter (Array String)
   | NamespaceFilter (Array Namespace)
-  | DeclarationFilter (Array String)
+  | DeclarationFilter (Array DeclarationType)
 
 filterWrapper :: forall a. (EncodeJson a) => String -> a -> Json
 filterWrapper f q =
@@ -70,7 +70,7 @@ instance encodeFilter :: EncodeJson Filter where
   encodeJson (NamespaceFilter nss) =
     filterWrapper "namespace" (jsonSingletonObject' "namespaces" nss)
   encodeJson (DeclarationFilter decls) =
-    filterWrapper "declarations" decls
+    filterWrapper "declarations" (map declarationTypeToString decls)
 
 newtype CompletionOptions = CompletionOptions {
   maxResults :: Maybe Int,
