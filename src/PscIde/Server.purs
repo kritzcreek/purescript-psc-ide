@@ -4,18 +4,16 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Parallel.Class (parallel, sequential)
-import Data.Either (Either(..), either)
-import Data.Int (fromNumber)
-import Data.Maybe (Maybe(Just, Nothing), maybe)
+import Data.Either (Either(..), either, hush)
+import Data.Int as Int
+import Data.Maybe (Maybe(..), maybe)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
 import Effect (Effect)
-import Effect.Aff (Aff, attempt, delay, makeAff, nonCanceler)
+import Effect.Aff (Aff, attempt, delay, makeAff, nonCanceler, try)
 import Effect.Class (liftEffect)
-import Effect.Exception (catchException)
 import Effect.Random (randomInt)
 import Foreign.Object (Object)
-import Global (readInt)
 import Node.Buffer as Buffer
 import Node.ChildProcess (ChildProcess, StdIOBehaviour, Exit(..), onClose, onError, defaultSpawnOptions, spawn, defaultExecOptions, execFile, pipe)
 import Node.Encoding (Encoding(UTF8))
@@ -115,9 +113,9 @@ deleteSavedPort cwd = unlink (portFilePath cwd)
 
 -- | Get the saved port for the given project directory (if present)
 getSavedPort :: String → Effect (Maybe Int)
-getSavedPort cwd = do
-  text <- catchException (\_ -> pure Nothing) (Just <$> readTextFile UTF8 (portFilePath cwd))
-  pure $ maybe Nothing (fromNumber <<< readInt 10) text
+getSavedPort cwd = ado
+  text <- try (readTextFile UTF8 (portFilePath cwd))
+  in Int.fromString =<< hush text
 
 -- | Generate a fresh port (just now, randomly with no check or retry)
 pickFreshPort :: Effect Int

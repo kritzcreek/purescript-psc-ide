@@ -9,3 +9,4 @@
 yarn.lock
 .psc-ide-port
 /.spago/
+/package-lock.json

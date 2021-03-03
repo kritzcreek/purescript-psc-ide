@@ -1,0 +1,17 @@
+name: CI
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          purescript: "0.14.0"
+          psa: "0.8.2"
+          spago: "0.19.1"
+
+      - uses: purescript-contrib/setup-purescript@main
+
+      - run: spago build -u '--censor-lib --strict'
