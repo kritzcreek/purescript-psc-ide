@@ -1,7 +1,7 @@
 {
   "name": "purescript-psc-ide",
   "dependencies": {
-    "which": "^1.2.8"
+    "which": "^2.0.2"
   },
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
     "compile:bower": "purs compile \"src/**/*.purs\" \"bower_components/purescript-*/src/**/*.purs\""
   },
   "devDependencies": {
-    "purescript": "^0.13.8"
+    "purescript": "^0.14.0",
+    "spago": "^0.19.1"
   }
 }
