@@ -425,7 +425,7 @@ instance decodeImport :: DecodeJson Import where
       "hiding"   -> do
         identifiers <- o .: "identifiers"
         pure $ Import {moduleName: moduleName, importType: Hiding identifiers, qualifier: q}
-      v -> Left (TypeMismatch "ImportType")
+      _ -> Left (TypeMismatch "ImportType")
 
 instance decodeImportResult :: DecodeJson ImportResult where
   decodeJson json = do
