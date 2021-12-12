@@ -7,7 +7,7 @@ exports.send = function(cmd){
     return function(cb){
       return function(err){
         return function(){
-          var sock = net.createConnection({port: port})
+          var sock = net.createConnection({host: "127.0.0.1", port: port})
             , result = ""
           sock.on('data', function (data) {
             result += data
