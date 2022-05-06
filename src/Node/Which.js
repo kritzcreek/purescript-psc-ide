@@ -1,11 +1,11 @@
-var which = require('which');
+import which from 'which';
 
-exports.whichImpl = function (options) {
+export function whichImpl(options) {
   return function (path) {
     return function (errcb) {
       return function (cb) {
-        return function() {
-          which(path, { all: true, path: options.path, pathExt: options.pathExt }, function(err, resolved) {
+        return function () {
+          which(path, { all: true, path: options.path, pathExt: options.pathExt }, function (err, resolved) {
             if (err) {
               errcb(err)();
             }
