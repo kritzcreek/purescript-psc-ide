@@ -1,16 +1,51 @@
-module PscIde.Command where
+module PscIde.Command
+  ( CodegenTarget(..)
+  , Command(..)
+  , CompletionOptions(..)
+  , DeclarationType(..)
+  , FileName
+  , Filter(..)
+  , GenCompletion
+  , Import(..)
+  , ImportCommand(..)
+  , ImportList(..)
+  , ImportResult(..)
+  , ImportType(..)
+  , ListType(..)
+  , Matcher(..)
+  , Message(..)
+  , ModuleList(..)
+  , Namespace(..)
+  , Position
+  , PscSuggestion(..)
+  , PursIdeInfo(..)
+  , PursuitCompletion(..)
+  , PursuitType(..)
+  , RangePosition
+  , RebuildError(..)
+  , RebuildResult(..)
+  , Result
+  , SourceSpan(..)
+  , SourceSpanRec
+  , TypeInfo(..)
+  , TypePosition(..)
+  , declarationTypeFromString
+  , declarationTypeToString
+  , unwrapResponse
+  )
+  where
 
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Argonaut (JsonDecodeError(..), getField, parseJson, printJsonDecodeError)
+import Data.Argonaut (JsonDecodeError(..), getField, parseJson, printJsonDecodeError, (.:?))
 import Data.Argonaut.Core (jsonEmptyObject, jsonSingletonObject, jsonNull, fromString, Json, toString)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.:))
 import Data.Argonaut.Encode (class EncodeJson, encodeJson, (~>), (:=))
 import Data.Array (singleton)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, hush)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.String (joinWith)
 import Foreign.Object (Object)
 
@@ -259,11 +294,12 @@ type GenCompletion a = {
   | a
 }
 
-newtype TypePosition = TypePosition {
+type SourceSpanRec = {
   name :: String,
   start :: Position,
   end :: Position
 }
+newtype TypePosition = TypePosition SourceSpanRec
 
 newtype TypeInfo = TypeInfo (GenCompletion (
   definedAt :: Maybe TypePosition,
@@ -294,6 +330,9 @@ newtype Import = Import
 type Position = { line :: Int, column :: Int }
 type RangePosition = { startLine :: Int, startColumn :: Int, endLine :: Int, endColumn :: Int }
 
+newtype SourceSpan = SourceSpan SourceSpanRec
+
+
 newtype RebuildError =
   RebuildError
   { position :: Maybe RangePosition
@@ -304,6 +343,8 @@ newtype RebuildError =
   , errorLink :: String
   , pursIde :: Maybe PursIdeInfo
   , suggestion :: Maybe PscSuggestion
+  -- position+filename are duplicated in allSpans, being the "primary" span
+  , allSpans :: Array SourceSpan
   }
 
 newtype PscSuggestion =
@@ -370,14 +411,20 @@ instance decodeTypeInfo :: DecodeJson TypeInfo where
     getFieldMaybe o f = Right $ either (const Nothing) Just $ getField o f
 
 instance decodeTypePosition :: DecodeJson TypePosition where
-  decodeJson json = do
+  decodeJson json = TypePosition <$> decodeSourceSpan' json
+
+instance decodeSourceSpan :: DecodeJson SourceSpan where
+  decodeJson json = SourceSpan <$> decodeSourceSpan' json
+
+decodeSourceSpan' :: Json -> Either JsonDecodeError SourceSpanRec
+decodeSourceSpan' json = do
     o <- decodeJson json
     name <- o .: "name"
     start <- o .: "start"
     end <- o .: "end"
     case start, end of
       [sl, sc], [el, ec] ->
-        Right (TypePosition { name, start: { line: sl, column: sc }, end: { line: el, column: ec } })
+        Right { name, start: { line: sl, column: sc }, end: { line: el, column: ec } }
       _, _ -> Left (TypeMismatch "Array")
 
 instance decodePursuitCompletion :: DecodeJson PursuitCompletion where
@@ -457,7 +504,9 @@ instance decodeRebuildError :: DecodeJson RebuildError where
       rr <- so .: "replaceRange"
       replaceRange <- pure $ hush $ { startLine: _, startColumn: _, endLine: _, endColumn: _ } <$> rr .: "startLine" <*> rr .: "startColumn" <*> rr .: "endLine" <*> rr .: "endColumn"
       pure $ PscSuggestion { replacement, replaceRange }
-    pure (RebuildError { errorCode, errorLink, moduleName, filename, message, position, pursIde, suggestion })
+    -- allSpans is an addition to the original format as of 2018; however psa currently drops this field when passing through json errors
+    allSpans <- fromMaybe [] <$> o .:? "allSpans"
+    pure (RebuildError { errorCode, errorLink, moduleName, filename, message, position, pursIde, suggestion, allSpans })
 
 instance decodeRebuildResult :: DecodeJson RebuildResult where
   decodeJson json = RebuildResult <$> (decodeJson json <|> (singleton <$> decodeJson json))
