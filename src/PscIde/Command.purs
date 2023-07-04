@@ -45,9 +45,9 @@ data Filter =
   ExactFilter String
   | PrefixFilter String
   | ModuleFilter (Array String)
-  | DependencyFilter (Array String)
   | NamespaceFilter (Array Namespace)
   | DeclarationFilter (Array DeclarationType)
+  | DependencyFilter (Maybe String) (Array String)
 
 filterWrapper :: forall a. (EncodeJson a) => String -> a -> Json
 filterWrapper f q =
@@ -65,12 +65,13 @@ instance encodeFilter :: EncodeJson Filter where
     filterWrapper "prefix" (jsonSingletonObject' "search" q)
   encodeJson (ModuleFilter modules) =
     filterWrapper "modules" (jsonSingletonObject' "modules" modules)
-  encodeJson (DependencyFilter deps) =
-    filterWrapper "dependencies" (jsonSingletonObject' "modules" deps)
   encodeJson (NamespaceFilter nss) =
     filterWrapper "namespace" (jsonSingletonObject' "namespaces" nss)
   encodeJson (DeclarationFilter decls) =
     filterWrapper "declarations" (map declarationTypeToString decls)
+  encodeJson (DependencyFilter qualifier imports) =
+    filterWrapper "dependencies" ("qualifier" := qualifier ~> "imports" := imports ~> jsonEmptyObject)
+
 
 newtype CompletionOptions = CompletionOptions {
   maxResults :: Maybe Int,
