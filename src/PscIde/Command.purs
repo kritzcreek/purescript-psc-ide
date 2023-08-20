@@ -82,7 +82,7 @@ data Filter =
   | ModuleFilter (Array String)
   | NamespaceFilter (Array Namespace)
   | DeclarationFilter (Array DeclarationType)
-  | DependencyFilter (Maybe String) (Array String)
+  | DependencyFilter (Maybe String) String
 
 filterWrapper :: forall a. (EncodeJson a) => String -> a -> Json
 filterWrapper f q =
@@ -104,8 +104,8 @@ instance encodeFilter :: EncodeJson Filter where
     filterWrapper "namespace" (jsonSingletonObject' "namespaces" nss)
   encodeJson (DeclarationFilter decls) =
     filterWrapper "declarations" (map declarationTypeToString decls)
-  encodeJson (DependencyFilter qualifier imports) =
-    filterWrapper "dependencies" ("qualifier" := qualifier ~> "imports" := imports ~> jsonEmptyObject)
+  encodeJson (DependencyFilter qualifier moduleText) =
+    filterWrapper "dependencies" ("qualifier" := qualifier ~> "moduleText" := moduleText ~> jsonEmptyObject)
 
 
 newtype CompletionOptions = CompletionOptions {
