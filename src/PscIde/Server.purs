@@ -15,8 +15,11 @@ import Effect.Class (liftEffect)
 import Effect.Random (randomInt)
 import Foreign.Object (Object)
 import Node.Buffer as Buffer
-import Node.ChildProcess (ChildProcess, StdIOBehaviour, Exit(..), onClose, onError, defaultSpawnOptions, spawn, defaultExecOptions, execFile, pipe)
+import Node.ChildProcess (ChildProcess, closeH, errorH, execFile', spawn')
+import Node.ChildProcess.Types (Exit(..), StdIO)
 import Node.Encoding (Encoding(UTF8))
+import Node.Errors.SystemError as SysError
+import Node.EventEmitter (on_)
 import Node.FS.Sync (readTextFile, unlink, writeTextFile)
 import Node.Path as Path
 import Node.Which (which')
@@ -31,7 +34,7 @@ type PscIdeServerArgs = {
   exe :: String,
   combinedExe :: Boolean,
   cwd :: Maybe String,
-  stdio :: Array (Maybe StdIOBehaviour),
+  appendStdio :: Maybe (Array StdIO),
   source :: Array String, -- source globs
   port :: Maybe Int,
   directory :: Maybe String,
@@ -57,7 +60,7 @@ defaultServerArgs = {
   -- TODO: Remove combinedExe when support for the non-combined executable can be removed
   combinedExe: true,
   cwd: Nothing,
-  stdio: pipe,
+  appendStdio: Nothing,
   source: [],
   port: Nothing,
   directory: Nothing,
@@ -71,8 +74,8 @@ defaultServerArgs = {
 
 -- | Start a psc-ide server instance
 startServer ∷ PscIdeServerArgs → Aff ServerStartResult
-startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirectory, watch, debug, polling, editorMode, logLevel } = do
-    cp <- liftEffect (spawn exe (
+startServer { appendStdio, exe, combinedExe, cwd, source, port, directory, outputDirectory, watch, debug, polling, editorMode, logLevel } = do
+    cp <- liftEffect (spawn' exe (
       (if combinedExe then ["ide", "server"] else []) <>
       (maybe [] (\p -> ["-p", show p]) port) <>
       (maybe [] (\d -> ["-d", d]) directory) <>
@@ -83,16 +86,16 @@ startServer { stdio, exe, combinedExe, cwd, source, port, directory, outputDirec
       (if editorMode then ["--editor-mode"] else []) <>
       (maybe [] (\l -> ["--log-level", logParam l]) logLevel) <>
       source
-      ) defaultSpawnOptions { cwd = cwd, stdio = stdio })
+      ) _ { cwd = cwd, appendStdio = appendStdio })
     let handleErr = makeAff \ cb -> nonCanceler <$ do
-                      onError cp (\{ code, errno, syscall } ->
+                      cp # on_ errorH (\sysError ->
                         cb $ Right $ StartError $
                           "psc-ide-server error:" <>
-                          "{ code: " <> code <>
-                          ", errno: " <> errno <>
-                          ", syscall: " <> syscall <>
+                          "{ code: " <> SysError.code sysError <>
+                          ", errno: " <> show (SysError.errno sysError) <>
+                          ", syscall: " <> SysError.syscall sysError <>
                           " }")
-                      onClose cp (\exit -> case exit of
+                      cp # on_ closeH (\exit -> case exit of
                                      (Normally 0) -> cb $ Right Closed
                                      (Normally n) -> cb $ Right $ StartError $ "Error code returned: "<> show n
                                      _ -> cb $ Right $ StartError "Other close error")
@@ -138,5 +141,5 @@ findBins' { path, pathExt, env } executable = do
   where
   getVersion :: String -> Aff String
   getVersion bin = makeAff $ \cb -> nonCanceler <$
-    execFile bin ["--version"] (defaultExecOptions { env = env }) \({error, stdout}) -> do
-      maybe (Right <$> Buffer.readString UTF8 0 100 stdout >>= cb) (cb <<< Left) error
+    execFile' bin ["--version"] (_ { env = env }) \({error, stdout}) -> do
+      maybe (Right <$> Buffer.readString UTF8 0 100 stdout >>= cb) (cb <<< Left <<< SysError.toError) error
