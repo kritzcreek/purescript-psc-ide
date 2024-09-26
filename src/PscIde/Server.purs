@@ -16,7 +16,7 @@ import Effect.Random (randomInt)
 import Foreign.Object (Object)
 import Node.Buffer as Buffer
 import Node.ChildProcess (ChildProcess, closeH, errorH, execFile', spawn')
-import Node.ChildProcess.Types (Exit(..), StdIO)
+import Node.ChildProcess.Types (Exit(..), Shell, StdIO)
 import Node.Encoding (Encoding(UTF8))
 import Node.Errors.SystemError as SysError
 import Node.EventEmitter (on_)
@@ -35,6 +35,7 @@ type PscIdeServerArgs = {
   combinedExe :: Boolean,
   cwd :: Maybe String,
   appendStdio :: Maybe (Array StdIO),
+  shell :: Maybe Shell,
   source :: Array String, -- source globs
   port :: Maybe Int,
   directory :: Maybe String,
@@ -61,6 +62,7 @@ defaultServerArgs = {
   combinedExe: true,
   cwd: Nothing,
   appendStdio: Nothing,
+  shell: Nothing,
   source: [],
   port: Nothing,
   directory: Nothing,
@@ -74,7 +76,7 @@ defaultServerArgs = {
 
 -- | Start a psc-ide server instance
 startServer ∷ PscIdeServerArgs → Aff ServerStartResult
-startServer { appendStdio, exe, combinedExe, cwd, source, port, directory, outputDirectory, watch, debug, polling, editorMode, logLevel } = do
+startServer { appendStdio, exe, combinedExe, cwd, shell, source, port, directory, outputDirectory, watch, debug, polling, editorMode, logLevel } = do
     cp <- liftEffect (spawn' exe (
       (if combinedExe then ["ide", "server"] else []) <>
       (maybe [] (\p -> ["-p", show p]) port) <>
@@ -86,7 +88,7 @@ startServer { appendStdio, exe, combinedExe, cwd, source, port, directory, outpu
       (if editorMode then ["--editor-mode"] else []) <>
       (maybe [] (\l -> ["--log-level", logParam l]) logLevel) <>
       source
-      ) _ { cwd = cwd, appendStdio = appendStdio })
+      ) _ { cwd = cwd, appendStdio = appendStdio, shell = shell })
     let handleErr = makeAff \ cb -> nonCanceler <$ do
                       cp # on_ errorH (\sysError ->
                         cb $ Right $ StartError $
@@ -131,15 +133,22 @@ stopServer port = void $ quit port
 data Executable = Executable String (Maybe String)
 
 findBins :: String -> Aff (Array Executable)
-findBins = findBins' { path: Nothing, pathExt: Nothing, env: Nothing }
+findBins = findBins' { path: Nothing, pathExt: Nothing, env: Nothing, shell: Nothing }
 
-findBins' :: { path :: Maybe String, pathExt :: Maybe String, env :: Maybe (Object String) } -> String -> Aff (Array Executable)
-findBins' { path, pathExt, env } executable = do
+type FindBinsArgs = {
+  path :: Maybe String,
+  pathExt :: Maybe String,
+  env :: Maybe (Object String),
+  shell :: Maybe Shell
+}
+
+findBins' :: FindBinsArgs -> String -> Aff (Array Executable)
+findBins' { path, pathExt, env, shell } executable = do
   bins <- which' { path, pathExt } executable <|> pure []
   for bins \bin -> Executable bin <$> either (const Nothing) Just <$> attempt (getVersion bin)
 
   where
   getVersion :: String -> Aff String
   getVersion bin = makeAff $ \cb -> nonCanceler <$
-    execFile' bin ["--version"] (_ { env = env }) \({error, stdout}) -> do
+    execFile' bin ["--version"] (_ { env = env, shell = shell }) \({error, stdout}) -> do
       maybe (Right <$> Buffer.readString UTF8 0 100 stdout >>= cb) (cb <<< Left <<< SysError.toError) error
